@@ -1,18 +1,61 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
+	"os"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	cip "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
+	}
+
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
 
-	mux.Get("/", Make(func(w http.ResponseWriter, r *http.Request) error {
-		_, err := w.Write([]byte("Hello World!"))
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	cognitoClient := cip.NewFromConfig(cfg)
+
+	mux.Post("/register", Make(func(w http.ResponseWriter, r *http.Request) error {
+		var req RegisterRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			return Error{
+				StatusCode: http.StatusBadRequest,
+				Message:    err.Error(),
+			}
+		}
+
+		resp, err := cognitoClient.SignUp(r.Context(), &cip.SignUpInput{
+			ClientId: aws.String(os.Getenv("COGNITO_APP_CLIENT_ID")),
+			Username: aws.String(req.Email),
+			Password: aws.String(req.Password),
+		})
+		if err != nil {
+			return Error{
+				StatusCode: http.StatusInternalServerError,
+				Message:    err.Error(),
+			}
+		}
+
+		w.Write([]byte(*resp.UserSub))
+
 		return err
 	}))
 
