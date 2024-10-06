@@ -42,7 +42,7 @@ func main() {
 			}
 		}
 
-		resp, err := cognitoClient.SignUp(r.Context(), &cip.SignUpInput{
+		_, err = cognitoClient.SignUp(r.Context(), &cip.SignUpInput{
 			ClientId: aws.String(os.Getenv("COGNITO_APP_CLIENT_ID")),
 			Username: aws.String(req.Email),
 			Password: aws.String(req.Password),
@@ -54,10 +54,36 @@ func main() {
 			}
 		}
 
-		w.Write([]byte(*resp.UserSub))
+		w.Write([]byte("check your email to verify your email"))
 
 		return err
 	}))
 
+	mux.Post("/verification-code", Make(func(w http.ResponseWriter, r *http.Request) error {
+		var req VerificationCodeRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			return Error{
+				StatusCode: http.StatusBadRequest,
+				Message:    err.Error(),
+			}
+		}
+
+		_, err = cognitoClient.ConfirmSignUp(r.Context(), &cip.ConfirmSignUpInput{
+			ClientId:         aws.String(os.Getenv("COGNITO_APP_CLIENT_ID")),
+			Username:         aws.String(req.Email),
+			ConfirmationCode: aws.String(req.Code),
+		})
+		if err != nil {
+			return Error{
+				StatusCode: http.StatusInternalServerError,
+				Message:    err.Error(),
+			}
+		}
+
+		w.Write([]byte("your account is confirmed"))
+
+		return err
+	}))
 	http.ListenAndServe(":8080", mux)
 }
