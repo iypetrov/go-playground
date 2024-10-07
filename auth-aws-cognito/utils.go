@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strings"
 )
 
@@ -38,32 +35,6 @@ func WriteJson(w http.ResponseWriter, status int, v any) error {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
-}
-
-func StructToString(value interface{}) (string, error) {
-	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(value)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-func StringToStruct(gobEncodedValue string, targetType interface{}) (interface{}, error) {
-	typ := reflect.TypeOf(targetType)
-	if typ.Kind() != reflect.Struct {
-		return nil, errors.New("targetType must be a struct type")
-	}
-
-	value := reflect.New(typ).Interface()
-
-	reader := strings.NewReader(gobEncodedValue)
-	err := gob.NewDecoder(reader).Decode(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return reflect.ValueOf(value).Elem().Interface(), nil
 }
 
 func GetAuthProviderError(authErr error) string {

@@ -56,7 +56,7 @@ func main() {
 
 		w.Write([]byte("check your email to verify your email"))
 
-		return err
+		return nil 
 	}))
 
 	mux.Post("/verification-code", Make(func(w http.ResponseWriter, r *http.Request) error {
@@ -83,7 +83,7 @@ func main() {
 
 		w.Write([]byte("your account is confirmed"))
 
-		return err
+		return nil 
 	}))
 
 	mux.Post("/login", Make(func(w http.ResponseWriter, r *http.Request) error {
@@ -116,7 +116,21 @@ func main() {
 		err = WriteCookie(w, "APP_COOKIE", cookie, []byte(os.Getenv("APP_SECRET")))
 		w.Write([]byte("you are logged in successfully"))
 
-		return err
+		return nil
+	}))
+
+	mux.With(AuthClient).Get("/client", Make(func(w http.ResponseWriter, r *http.Request) error {
+		userCookie, ok := r.Context().Value("UserCookie").(UserCookie)
+		if !ok {
+			return Error{
+				StatusCode: http.StatusUnauthorized,
+				Message:    "not valid cookie",
+			}
+		}	
+		
+		w.Write([]byte("hello client " + userCookie.Email))
+
+		return nil 
 	}))
 
 	http.ListenAndServe(":8080", mux)

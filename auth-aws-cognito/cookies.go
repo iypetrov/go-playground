@@ -19,7 +19,7 @@ var (
 	ErrInvalidValue = errors.New("invalid cookie value")
 )
 
-func WriteCookie(w http.ResponseWriter, name string, value any, secretKey []byte) error {
+func WriteCookie(w http.ResponseWriter, name string, value UserCookie, secretKey []byte) error {
 	var buf bytes.Buffer
 
 	err := gob.NewEncoder(&buf).Encode(&value)
@@ -40,19 +40,20 @@ func WriteCookie(w http.ResponseWriter, name string, value any, secretKey []byte
 	return writeEncrypted(w, cookie, secretKey)
 }
 
-func ReadCookie[T any](r *http.Request, name string, secretKey []byte) (T, error) {
-	var zero T
+func ReadCookie(r *http.Request, name string, secretKey []byte) (UserCookie, error) {
 	value, err := readEncrypted(r, name, secretKey)
 	if err != nil {
-		return zero, err
+		return UserCookie{}, err
 	}
 
-	data, err := StringToStruct(value, zero)
-	if err != nil {
-		return zero, err
+	reader := strings.NewReader(value)
+
+	var userCookie UserCookie
+	if err := gob.NewDecoder(reader).Decode(&userCookie); err != nil {
+		return UserCookie{}, err
 	}
 
-	return data.(T), nil
+	return userCookie, nil
 }
 
 func write(w http.ResponseWriter, cookie http.Cookie) error {

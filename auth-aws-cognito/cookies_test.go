@@ -3,33 +3,33 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteAndReadCookie(t *testing.T) {
-	secretKey := []byte(os.Getenv("APP_SECRET"))
-	expected := UserCookie{
-		Email:        "user@example.com",
-		AccessToken:  "access_token_123",
-		RefreshToken: "refresh_token_123",
-	}
+    secretKey := []byte("13d6b4dff8f84a10851021ec8608f814")
 
-	rr := httptest.NewRecorder()
+    inputCookie := UserCookie{
+        Email:        "test@example.com",
+        AccessToken:  "access-token",
+        RefreshToken: "refresh-token",
+    }
 
-	err := WriteCookie(rr, "APP_COOKIE", expected, secretKey)
-	require.NoError(t, err)
+    w := httptest.NewRecorder()
+    err := WriteCookie(w, "user_cookie", inputCookie, secretKey)
+    assert.NoError(t, err) 
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	cookie := rr.Result().Cookies()[0]
-	req.AddCookie(cookie)
+    cookie := w.Result().Cookies()
+    assert.Len(t, cookie, 1)
+    assert.Equal(t, "APP_COOKIE", cookie[0].Name)
 
-	// actual, err := ReadCookie[RegisterResponse](req, "APP_COOKIE", secretKey)
-	// require.NoError(t, err)
+    r := httptest.NewRequest(http.MethodGet, "/", nil)
+    r.AddCookie(cookie[0]) 
 
-	// require.Equal(t, expected.Email, actual.Email)
-	// require.Equal(t, expected.AccessToken, actual.AccessToken)
-	// require.Equal(t, expected.RefreshToken, actual.RefreshToken)
+    outputCookie, err := ReadCookie(r, "APP_COOKIE", secretKey)
+    assert.NoError(t, err) 
+
+    assert.Equal(t, inputCookie, outputCookie)
 }
