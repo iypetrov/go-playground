@@ -10,7 +10,12 @@ type VerificationCodeRequest struct {
 	Code  string `json:"code" binding:"required"`
 }
 
-type RegisterResponse struct {
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+type UserCookie struct {
 	Email        string
 	AccessToken  string
 	RefreshToken string

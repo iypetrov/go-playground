@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"reflect"
 	"strings"
 )
 
@@ -20,7 +19,43 @@ var (
 	ErrInvalidValue = errors.New("invalid cookie value")
 )
 
-func Write(w http.ResponseWriter, cookie http.Cookie) error {
+func WriteCookie(w http.ResponseWriter, name string, value any, secretKey []byte) error {
+	var buf bytes.Buffer
+
+	err := gob.NewEncoder(&buf).Encode(&value)
+	if err != nil {
+		return err
+	}
+
+	cookie := http.Cookie{
+		Name:     "APP_COOKIE",
+		Value:    buf.String(),
+		Path:     "/",
+		MaxAge:   3600,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	return writeEncrypted(w, cookie, secretKey)
+}
+
+func ReadCookie[T any](r *http.Request, name string, secretKey []byte) (T, error) {
+	var zero T
+	value, err := readEncrypted(r, name, secretKey)
+	if err != nil {
+		return zero, err
+	}
+
+	data, err := StringToStruct(value, zero)
+	if err != nil {
+		return zero, err
+	}
+
+	return data.(T), nil
+}
+
+func write(w http.ResponseWriter, cookie http.Cookie) error {
 	cookie.Value = base64.URLEncoding.EncodeToString([]byte(cookie.Value))
 
 	if len(cookie.String()) > 4096 {
@@ -32,7 +67,7 @@ func Write(w http.ResponseWriter, cookie http.Cookie) error {
 	return nil
 }
 
-func Read(r *http.Request, name string) (string, error) {
+func read(r *http.Request, name string) (string, error) {
 	cookie, err := r.Cookie(name)
 	if err != nil {
 		return "", err
@@ -46,7 +81,7 @@ func Read(r *http.Request, name string) (string, error) {
 	return string(value), nil
 }
 
-func WriteEncrypted(w http.ResponseWriter, cookie http.Cookie, secretKey []byte) error {
+func writeEncrypted(w http.ResponseWriter, cookie http.Cookie, secretKey []byte) error {
 	block, err := aes.NewCipher(secretKey)
 	if err != nil {
 		return err
@@ -69,11 +104,11 @@ func WriteEncrypted(w http.ResponseWriter, cookie http.Cookie, secretKey []byte)
 
 	cookie.Value = string(encryptedValue)
 
-	return Write(w, cookie)
+	return write(w, cookie)
 }
 
-func ReadEncrypted(r *http.Request, name string, secretKey []byte) (string, error) {
-	encryptedValue, err := Read(r, name)
+func readEncrypted(r *http.Request, name string, secretKey []byte) (string, error) {
+	encryptedValue, err := read(r, name)
 	if err != nil {
 		return "", err
 	}
@@ -112,57 +147,4 @@ func ReadEncrypted(r *http.Request, name string, secretKey []byte) (string, erro
 	}
 
 	return value, nil
-}
-
-func WriteCookie(w http.ResponseWriter, name string, value any, secretKey []byte) error {
-	var buf bytes.Buffer
-
-	err := gob.NewEncoder(&buf).Encode(&value)
-	if err != nil {
-		return err
-	}
-
-	cookie := http.Cookie{
-		Name:     "APP_COOKIE",
-		Value:    buf.String(),
-		Path:     "/",
-		MaxAge:   3600,
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	}
-
-	return WriteEncrypted(w, cookie, secretKey)
-}
-
-func castStringToStructType(gobEncodedValue string, targetType interface{}) (interface{}, error) {
-	typ := reflect.TypeOf(targetType)
-	if typ.Kind() != reflect.Struct {
-		return nil, errors.New("targetType must be a struct type")
-	}
-
-	value := reflect.New(typ).Interface()
-
-	reader := strings.NewReader(gobEncodedValue)
-	err := gob.NewDecoder(reader).Decode(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return reflect.ValueOf(value).Elem().Interface(), nil
-}
-
-func ReadCookie[T any](r *http.Request, name string, secretKey []byte) (T, error) {
-	var zero T
-	value, err := ReadEncrypted(r, name, secretKey)
-	if err != nil {
-		return zero, err
-	}
-
-	data, err := castStringToStructType(value, zero)
-	if err != nil {
-		return zero, err
-	}
-
-	return data.(T), nil
 }
