@@ -10,10 +10,6 @@ type Number interface {
 	constraints.Integer | constraints.Float
 }
 
-// worst: O(N^2)
-// avg: O(N^2)
-// best: O(N^2)
-// space: O(1)
 func BubbleSort(arr []int) []int {
 	n := len(arr)
 	for i := 0; i < n-1; i++ {
@@ -26,10 +22,6 @@ func BubbleSort(arr []int) []int {
 	return arr
 }
 
-// worst: O(N^2)
-// avg: O(N^2)
-// best: O(N^2)
-// space: O(1)
 func SelectionSort(arr []int) []int {
 	n := len(arr)
 	for i := 0; i < n-1; i++ {
