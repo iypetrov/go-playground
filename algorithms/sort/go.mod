@@ -1,4 +1,4 @@
-module github.com/iypetrov/sorting
+module github.com/iypetrov/sort
 
 go 1.23.1
 

@@ -4,11 +4,11 @@ import (
 	"testing"
 )
 
-func TestSearchAlgorithms(t *testing.T) {
+func TestBinary(t *testing.T) {
 	tests := []struct {
 		input    []int
 		target   int
-		expected int // expected index of the target, -1 if not found
+		expected int
 	}{
 		{input: []int{}, target: 5, expected: -1},
 		{input: []int{1}, target: 1, expected: 0},
@@ -21,20 +21,13 @@ func TestSearchAlgorithms(t *testing.T) {
 		{input: []int{11, 12, 22, 25, 34, 64, 90}, target: 100, expected: -1},
 	}
 
-	algorithms := []struct {
-		name  string
-		search func([]int, int) int
-	}{
-		{name: "LinearSearch", search: LinearSearch},
-		{name: "BinarySearch", search: BinarySearch},
-	}
+	name := "Binary"
+	algo := Binary[int]
 
-	for _, algo := range algorithms {
 		for _, test := range tests {
-			result := algo.search(test.input, test.target)
+			result := algo(test.input, test.target)
 			if result != test.expected {
-				t.Errorf("[%s] searching for %d in %v: expected %d, got %d", algo.name, test.target, test.input, test.expected, result)
+				t.Errorf("[%s] search for %d in %v: expected %d, got %d", name, test.target, test.input, test.expected, result)
 			}
 		}
-	}
 }
