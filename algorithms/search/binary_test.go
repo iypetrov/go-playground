@@ -23,10 +23,10 @@ func TestBinary(t *testing.T) {
 
 	name := "Binary"
 	algo := Binary[int]
-		for _, test := range tests {
-			result := algo(test.input, test.target)
-			if result != test.expected {
-				t.Errorf("[%s] search for %d in %v: expected %d, got %d", name, test.target, test.input, test.expected, result)
-			}
+	for _, test := range tests {
+		result := algo(test.input, test.target)
+		if result != test.expected {
+			t.Errorf("[%s] search for %d in %v: expected %d, got %d", name, test.target, test.input, test.expected, result)
 		}
+	}
 }

@@ -1,7 +1,7 @@
 package main
 
 func Binary[V Number](arr []V, target V) int {
-	var low, high int = 0, len(arr)-1
+	var low, high int = 0, len(arr) - 1
 	for low <= high {
 		var mid int = low + (high-low)/2
 		if arr[mid] == target {

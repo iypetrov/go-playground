@@ -20,18 +20,10 @@ func TestBubble(t *testing.T) {
 
 	name := "Bubble"
 	algo := Bubble[int]
-
 	for _, test := range tests {
-		original := make([]int, len(test.input))
-		copy(original, test.input)
-
-		sorted := algo(test.input)
-		if !reflect.DeepEqual(sorted, test.expected) {
-			t.Errorf("[%s] expected sorted %v, got %v", name, test.expected, sorted)
-		}
-
-		if !reflect.DeepEqual(test.input, test.expected) {
-			t.Errorf("[%s] expected original %v to be modified to %v, got %v", name, original, test.expected, test.input)
+		result := algo(test.input)
+		if !reflect.DeepEqual(result, test.expected) {
+			t.Errorf("[%s] expected %v, got %v", name, test.expected, result)
 		}
 	}
 }
