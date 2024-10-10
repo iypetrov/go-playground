@@ -16,20 +16,16 @@ func DFS[V any](root *Node) []V {
 
 	stack.Push(root)
 	for !stack.Empty() {
-		// Get the current node
-		elem, _ := stack.Pop()
-		output = append(output, elem.(*Node).Value.(V))
+		node, _ := stack.Pop()
+		output = append(output, node.(*Node).Value.(V))
 
-		// Check if the node is visited already
-		oldLen := visited.Size()
-		visited.Add(elem)
-		if (oldLen == visited.Size()) {
+		if visited.Contains(node) {
 			continue
 		}
+		visited.Add(node)
 
-		// Go through all children of the current node in reverse order
-		for i := len(elem.(*Node).Children) - 1; i >= 0; i-- {
-		    stack.Push(elem.(*Node).Children[i])
+		for i := len(node.(*Node).Children) - 1; i >= 0; i-- {
+		    stack.Push(node.(*Node).Children[i])
 		}
 	}
 

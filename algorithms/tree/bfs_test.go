@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-func TestDFS(t *testing.T) {
+func TestBFS(t *testing.T) {
 	tests := []struct {
 		input    *Node
 		expected []rune
 	}{
 		{
-			//
+			// Tree is empty
 			input:    nil,
 			expected: []rune{},
 		},
@@ -41,7 +41,7 @@ func TestDFS(t *testing.T) {
 				}},
 				{Value: 'B'},
 			}},
-			expected: []rune{'S', 'A', 'C', 'B'},
+			expected: []rune{'S', 'A', 'B', 'C'},
 		},
 		{
 			//       S
@@ -63,7 +63,7 @@ func TestDFS(t *testing.T) {
 					{Value: 'F'},
 				}},
 			}},
-			expected: []rune{'S', 'A', 'D', 'E', 'G', 'B', 'C', 'F'},
+			expected: []rune{'S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'},
 		},
 		{
 			//       S
@@ -83,7 +83,7 @@ func TestDFS(t *testing.T) {
 				{Value: 'B'},
 				{Value: 'C'},
 			}},
-			expected: []rune{'S', 'A', 'D', 'E', 'F', 'B', 'C'},
+			expected: []rune{'S', 'A', 'B', 'C', 'D', 'E', 'F'},
 		},
 		{
 			//        S
@@ -106,12 +106,12 @@ func TestDFS(t *testing.T) {
 					{Value: 'G'},
 				}},
 			}},
-			expected: []rune{'S', 'A', 'D', 'H', 'E', 'B', 'C', 'F', 'G'},
+			expected: []rune{'S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'},
 		},
 	}
 
-	name := "DFS"
-	algo := DFS[rune]
+	name := "BFS"
+	algo := BFS[rune]
 	for _, test := range tests {
 		result := algo(test.input)
 		if !reflect.DeepEqual(result, test.expected) {
