@@ -3,9 +3,8 @@ package main
 import "fmt"
 
 type Node struct {
-	val      any
-	parent   *Node
-	children []*Node
+	Value    any
+	Children []*Node
 }
 
 func main() {

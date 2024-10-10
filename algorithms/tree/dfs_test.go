@@ -17,15 +17,15 @@ func TestDFS(t *testing.T) {
 		},
 		{
 			//   S
-			input:    &Node{val: 'S'},
+			input:    &Node{Value: 'S'},
 			expected: []rune{'S'},
 		},
 		{
 			//   S
 			//   |
 			//   A
-			input: &Node{val: 'S', children: []*Node{
-				{val: 'A'},
+			input: &Node{Value: 'S', Children: []*Node{
+				{Value: 'A'},
 			}},
 			expected: []rune{'S', 'A'},
 		},
@@ -35,11 +35,11 @@ func TestDFS(t *testing.T) {
 			//     A   B
 			//    /
 			//   C
-			input: &Node{val: 'S', children: []*Node{
-				{val: 'A', children: []*Node{
-					{val: 'C'},
+			input: &Node{Value: 'S', Children: []*Node{
+				{Value: 'A', Children: []*Node{
+					{Value: 'C'},
 				}},
-				{val: 'B'},
+				{Value: 'B'},
 			}},
 			expected: []rune{'S', 'A', 'C', 'B'},
 		},
@@ -51,16 +51,16 @@ func TestDFS(t *testing.T) {
 			//   D   E   F
 			//       |
 			//       G
-			input: &Node{val: 'S', children: []*Node{
-				{val: 'A', children: []*Node{
-					{val: 'D'},
-					{val: 'E', children: []*Node{
-						{val: 'G'},
+			input: &Node{Value: 'S', Children: []*Node{
+				{Value: 'A', Children: []*Node{
+					{Value: 'D'},
+					{Value: 'E', Children: []*Node{
+						{Value: 'G'},
 					}},
 				}},
-				{val: 'B'},
-				{val: 'C', children: []*Node{
-					{val: 'F'},
+				{Value: 'B'},
+				{Value: 'C', Children: []*Node{
+					{Value: 'F'},
 				}},
 			}},
 			expected: []rune{'S', 'A', 'D', 'E', 'G', 'B', 'C', 'F'},
@@ -73,15 +73,15 @@ func TestDFS(t *testing.T) {
 			//   D   E
 			//       |
 			//       F
-			input: &Node{val: 'S', children: []*Node{
-				{val: 'A', children: []*Node{
-					{val: 'D'},
-					{val: 'E', children: []*Node{
-						{val: 'F'},
+			input: &Node{Value: 'S', Children: []*Node{
+				{Value: 'A', Children: []*Node{
+					{Value: 'D'},
+					{Value: 'E', Children: []*Node{
+						{Value: 'F'},
 					}},
 				}},
-				{val: 'B'},
-				{val: 'C'},
+				{Value: 'B'},
+				{Value: 'C'},
 			}},
 			expected: []rune{'S', 'A', 'D', 'E', 'F', 'B', 'C'},
 		},
@@ -93,17 +93,17 @@ func TestDFS(t *testing.T) {
 			//   D   E G   F
 			//       |
 			//       G
-			input: &Node{val: 'S', children: []*Node{
-				{val: 'A', children: []*Node{
-					{val: 'D', children: []*Node{
-						{val: 'G', children: nil},
+			input: &Node{Value: 'S', Children: []*Node{
+				{Value: 'A', Children: []*Node{
+					{Value: 'D', Children: []*Node{
+						{Value: 'G', Children: nil},
 					}},
-					{val: 'E'},
+					{Value: 'E'},
 				}},
-				{val: 'B'},
-				{val: 'C', children: []*Node{
-					{val: 'F'},
-					{val: 'G'},
+				{Value: 'B'},
+				{Value: 'C', Children: []*Node{
+					{Value: 'F'},
+					{Value: 'G'},
 				}},
 			}},
 			expected: []rune{'S', 'A', 'D', 'G', 'E', 'B', 'C', 'F', 'G'},
