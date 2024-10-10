@@ -1,29 +1,23 @@
 package main
 
 import (
-	"fmt"
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/emirpasic/gods/stacks/arraystack"
 )
 
 func DFS[V any](root *Node) []V {
 	output := make([]V, 0)
+	stack := arraystack.New()
+	visited := hashset.New() 
 
 	if root == nil {
 		return output
 	}
 
-	stack := arraystack.New()
-	visited := hashset.New() 
-
-	visited.Add(root)
 	stack.Push(root)
 	for !stack.Empty() {
 		// Get the current node
-		elem, ok := stack.Pop()
-		if !ok {
-			fmt.Println("failed to remove element form the stack")
-		}
+		elem, _ := stack.Pop()
 		output = append(output, elem.(*Node).Value.(V))
 
 		// Check if the node is visited already
@@ -33,9 +27,9 @@ func DFS[V any](root *Node) []V {
 			continue
 		}
 
-		// Go through all children of the current node
-		for _, node := range elem.(*Node).Children {
-			stack.Push(node)
+		// Go through all children of the current node in reverse order
+		for i := len(elem.(*Node).Children) - 1; i >= 0; i-- {
+		    stack.Push(elem.(*Node).Children[i])
 		}
 	}
 
