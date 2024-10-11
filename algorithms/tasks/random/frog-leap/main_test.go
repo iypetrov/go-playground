@@ -64,7 +64,7 @@ func TestGeneratePossiblePositions(t *testing.T) {
 			},
 		},
 		{
-			input: "_>><<",
+			input:    "_>><<",
 			expected: []string{},
 		},
 	}
@@ -106,15 +106,15 @@ func TestFrogLeap(t *testing.T) {
 				"_",
 			},
 		},
-		// {
-		// 	input: 1,
-		// 	expected: []string{
-		// 		">_<",
-		// 		"_><",
-		// 		"<>_",
-		// 		"<_>",
-		// 	},
-		// },
+		{
+			input: 1,
+			expected: []string{
+				">_<",
+				"_><",
+				"<>_",
+				"<_>",
+			},
+		},
 		{
 			input: 2,
 			expected: []string{

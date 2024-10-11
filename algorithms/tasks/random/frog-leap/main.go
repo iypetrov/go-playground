@@ -82,9 +82,9 @@ func GenerateChildren(node *Node) {
 	vals := GeneratePossiblePositions(node.Value)
 	children := make([]*Node, 0)
 	for _, val := range vals {
-		tmp := Node {
-			Value: val,
-			Parent: node,
+		tmp := Node{
+			Value:    val,
+			Parent:   node,
 			Children: []*Node{},
 		}
 		children = append(children, &tmp)
@@ -94,13 +94,13 @@ func GenerateChildren(node *Node) {
 }
 
 func FrogLeap(n int) []string {
-	root := Node {
-		Value: StartState(n),
-		Parent: nil,
+	root := Node{
+		Value:    StartState(n),
+		Parent:   nil,
 		Children: []*Node{},
 	}
 
-	return DFS(&root, n) 
+	return DFS(&root, n)
 }
 
 func DFS(root *Node, n int) []string {
@@ -116,7 +116,7 @@ func DFS(root *Node, n int) []string {
 	stack.Push(root)
 	for !stack.Empty() {
 		tmp, _ := stack.Pop()
-		node := tmp.(*Node) 
+		node := tmp.(*Node)
 		if node.Value == FinalState(n) {
 			fNode = node
 			break
@@ -142,14 +142,13 @@ func DFS(root *Node, n int) []string {
 
 	for fNode != nil {
 		result = append(result, fNode.Value)
-		fNode = fNode.Parent	
+		fNode = fNode.Parent
 	}
 
 	slices.Reverse(result)
 	return result
 }
 
-
 func main() {
-	fmt.Println(FrogLeap(20))
+	fmt.Println("hello frog-leap")
 }

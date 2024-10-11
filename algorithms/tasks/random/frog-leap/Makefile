@@ -1,4 +1,6 @@
 build:
+	@go mod tidy
+	@go mod download
 	@go build -o ./bin/main .
 
 run:
@@ -6,7 +8,3 @@ run:
 
 test:
 	go test
-
-fmt:
-	@go fmt ./...
-	@goimports -l -w .
