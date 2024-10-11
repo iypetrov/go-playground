@@ -8,7 +8,7 @@ import (
 func DFS[V any](root *Node) []V {
 	output := make([]V, 0)
 	stack := arraystack.New()
-	visited := hashset.New() 
+	visited := hashset.New()
 
 	if root == nil {
 		return output
@@ -25,9 +25,11 @@ func DFS[V any](root *Node) []V {
 		visited.Add(node)
 
 		for i := len(node.(*Node).Children) - 1; i >= 0; i-- {
-		    stack.Push(node.(*Node).Children[i])
+			if !visited.Contains(node.(*Node).Children[i]) {
+				stack.Push(node.(*Node).Children[i])
+			}
 		}
 	}
 
-	return output 
+	return output
 }

@@ -1,5 +1,8 @@
 build:
-	@air -c .air.toml
+	@go build -o ./bin/main .
+
+run:
+	@./bin/main
 
 test:
 	go test
