@@ -29,13 +29,17 @@ func main() {
 	mux.Route("/", func(r chi.Router) {
 		r.Handle("/web/*", http.StripPrefix("/web/", http.FileServer(http.Dir("web"))))
 
-		r.Get("/home", Make(func(w http.ResponseWriter, r *http.Request) error {
+		r.Get("/checkout", Make(func(w http.ResponseWriter, r *http.Request) error {
 			product := Product{
 				Name:        "stripe t-shirt",
 				Description: "nice t-shirt",
 				Price:       19.99,
 			}
-			return Render(w, "index", product)
+			return Render(w, "checkout", product)
+		}))
+
+		r.Get("/checkout/result", Make(func(w http.ResponseWriter, r *http.Request) error {
+			return Render(w, "result", Product{})
 		}))
 
 		r.Route("/payments", func(r chi.Router) {
@@ -94,17 +98,27 @@ func main() {
 			r.Post("/webhook", Make(func(w http.ResponseWriter, r *http.Request) error {
 				body, err := io.ReadAll(r.Body)
 				if err != nil {
-					return err
+					return Error{
+						StatusCode: http.StatusInternalServerError,
+						Message:    err,
+					}
 				}
 				defer r.Body.Close()
 
-				event, err := webhook.ConstructEvent(body, r.Header.Get("Stripe-Signature"), os.Getenv("STRIPE_WEBHOOK_SECRET"))
+				event, err := webhook.ConstructEvent(
+					body, 
+					r.Header.Get("Stripe-Signature"), 
+					os.Getenv("STRIPE_WEBHOOK_SECRET"),
+				)
 				if err != nil {
-					return err
+					return Error{
+						StatusCode: http.StatusInternalServerError,
+						Message:    err,
+					}
 				}
 
-				if event.Type == "checkout.session.completed" {
-					fmt.Println("Checkout Session completed!")
+				if event.Type == "payment_intent.succeeded" {
+					fmt.Println("we got the money")
 				}
 
 				WriteJson(w, 200, nil)
