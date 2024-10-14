@@ -1,0 +1,22 @@
+{{ block "result" . }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" href="data:,"/>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script src="https://js.stripe.com/v3/"></script>
+	<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+	<div class="bg-white p-8 rounded shadow-md w-full max-w-lg">
+		<h1 class="text-xl font-bold mb-4">Thanks for your purchase!</h1>
+		<p><strong>Name:</strong> {{.Name}}</p>
+		<p><strong>Description:</strong> {{.Description}}</p>
+		<p><strong>Uploaded Image:</strong></p>
+		<img src="{{.ImageURL}}" alt="view" class="max-w-full h-auto mt-4 shadow-lg">
+	</div>
+</body>
+</html>
+{{ end }}

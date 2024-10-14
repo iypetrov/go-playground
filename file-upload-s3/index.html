@@ -1,0 +1,41 @@
+{{ block "index" . }}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<title>file uploader</title>
+		<link rel="icon" href="data:,"/>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
+	</head>
+	<body class="bg-gray-100 flex items-center justify-center h-screen">
+		<form 
+			hx-post="/upload" 
+			hx-target="#response" 
+			hx-swap="outerHTML"
+			hx-encoding="multipart/form-data"
+		>
+			<div>
+			  <label for="name">Name:</label>
+			  <input type="text" id="name" name="name" required>
+			</div>
+		  
+			<div>
+			  <label for="description">Description:</label>
+			  <textarea id="description" name="description" required></textarea>
+			</div>
+		  
+			<div>
+			  <label for="image">Image:</label>
+			  <input type="file" id="image" name="image" accept="image/*" required>
+			</div>
+		  
+			<div>
+			  <button type="submit">Submit</button>
+			</div>
+		  </form>
+		  <div id="response"></div>
+	</body>
+</html>
+{{ end }}
