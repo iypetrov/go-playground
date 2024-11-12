@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -117,60 +118,77 @@ func (ut *UserTable) RenderTable() error {
 }
 
 func fetchUserData(usernames []string) ([]UserData, error) {
-	users := make([]UserData, 0)
+	users := make([]UserData, 0, len(usernames))
+	var wg sync.WaitGroup
+	userChan := make(chan UserData, len(usernames)) 
+
 	for _, username := range usernames {
-		resp, err := fetchGitHub(fmt.Sprintf("https://api.github.com/users/%s", username))
-		if err != nil {
-			fmt.Printf("Error fetching user data for %s: %v\n", username, err)
-			continue
-		}
+		wg.Add(1)
+		go func(username string) {
+			defer wg.Done()
 
-		var user User
-		if err := json.Unmarshal(resp, &user); err != nil {
-			fmt.Printf("Error decoding user data for %s: %v\n", username, err)
-			continue
-		}
-
-		repos, err := user.Repos()
-		if err != nil {
-			fmt.Printf("Error loading repos data for %s: %v\n", username, err)
-			continue
-		}
-
-		totalLangs := make(Languages)
-		totalForks := 0
-		creationCounts := make(YearActivity)
-		updateCounts := make(YearActivity)
-		for _, repo := range repos {
-			langs, err := repo.Langs()
+			resp, err := fetchGitHub(fmt.Sprintf("https://api.github.com/users/%s", username))
 			if err != nil {
-				fmt.Printf("Error loading languages data for %s: %v\n", repo.Name, err)
-				continue
+				fmt.Printf("Error fetching user data for %s: %v\n", username, err)
+				return
 			}
-			for lang, count := range langs {
-				totalLangs[lang] += count
-			}
-			totalForks += repo.ForksCount
-			creationYear, err := getYear(repo.CreatedAt)
-			if err == nil {
-				creationCounts[creationYear]++
-			}
-			updateYear, err := getYear(repo.UpdatedAt)
-			if err == nil {
-				updateCounts[updateYear]++
-			}
-		}
 
-		users = append(users, UserData{
-			Username:     user.Login,
-			Name:         user.Name,
-			Followers:    user.Followers,
-			Languages:    totalLangs,
-			TotalForks:   totalForks,
-			ReposCreated: creationCounts,
-			ReposUpdated: updateCounts,
-		})
+			var user User
+			if err := json.Unmarshal(resp, &user); err != nil {
+				fmt.Printf("Error decoding user data for %s: %v\n", username, err)
+				return
+			}
+
+			repos, err := user.Repos()
+			if err != nil {
+				fmt.Printf("Error loading repos data for %s: %v\n", username, err)
+				return
+			}
+
+			totalLangs := make(Languages)
+			totalForks := 0
+			creationCounts := make(YearActivity)
+			updateCounts := make(YearActivity)
+			for _, repo := range repos {
+				langs, err := repo.Langs()
+				if err != nil {
+					fmt.Printf("Error loading languages data for %s: %v\n", repo.Name, err)
+					continue
+				}
+				for lang, count := range langs {
+					totalLangs[lang] += count
+				}
+				totalForks += repo.ForksCount
+				creationYear, err := getYear(repo.CreatedAt)
+				if err == nil {
+					creationCounts[creationYear]++
+				}
+				updateYear, err := getYear(repo.UpdatedAt)
+				if err == nil {
+					updateCounts[updateYear]++
+				}
+			}
+
+			userData := UserData{
+				Username:     user.Login,
+				Name:         user.Name,
+				Followers:    user.Followers,
+				Languages:    totalLangs,
+				TotalForks:   totalForks,
+				ReposCreated: creationCounts,
+				ReposUpdated: updateCounts,
+			}
+			userChan <- userData 
+		}(username)
 	}
+
+	wg.Wait()
+	close(userChan)
+
+	for user := range userChan {
+		users = append(users, user)
+	}
+
 	return users, nil
 }
 
