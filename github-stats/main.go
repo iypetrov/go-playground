@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/rivo/tview"
@@ -22,17 +23,17 @@ type yearSort struct {
 	count int
 }
 
-func sortByYear(years map[int]int) []yearSort {
-    var sortedEntries []yearSort
-    for year, count := range years {
-        sortedEntries = append(sortedEntries, yearSort{year, count})
-    }
+func sortByYear(ya YearActivity) []yearSort {
+	var sortedEntries []yearSort
+	for year, count := range ya {
+		sortedEntries = append(sortedEntries, yearSort{year, count})
+	}
 
-    sort.Slice(sortedEntries, func(i, j int) bool {
-        return sortedEntries[i].year < sortedEntries[j].year
-    })
+	sort.Slice(sortedEntries, func(i, j int) bool {
+		return sortedEntries[i].year < sortedEntries[j].year
+	})
 
-    return sortedEntries
+	return sortedEntries
 }
 
 type UserTable struct {
@@ -42,13 +43,13 @@ type UserTable struct {
 }
 
 type UserData struct {
-	Username      string
-	Name          string
-	Followers     int
-	Languages     string
-	TotalForks    int
-	ReposCreated  string
-	ReposUpdated  string
+	Username     string
+	Name         string
+	Followers    int
+	Languages    Languages
+	TotalForks   int
+	ReposCreated YearActivity
+	ReposUpdated YearActivity
 }
 
 func NewUserTable(users []UserData) *UserTable {
@@ -69,13 +70,43 @@ func NewUserTable(users []UserData) *UserTable {
 func (ut *UserTable) RenderTable() error {
 	row := 1
 	for _, user := range ut.users {
+		var langCounts []langCount
+		for lang, count := range user.Languages{
+			langCounts = append(langCounts, langCount{lang, count})
+		}
+		sort.Slice(langCounts, func(i, j int) bool {
+			return langCounts[i].count > langCounts[j].count
+		})
+		var resultLangs []string
+		for _, lc := range langCounts {
+			resultLangs = append(resultLangs, lc.lang)
+		}
+		langsStr := strings.Join(resultLangs, ", ")
+
+		var creationStr, updateStr string
+		sortedCreationCounts := sortByYear(user.ReposCreated)
+		for i, entry := range sortedCreationCounts {
+			if i > 0 {
+				creationStr += ", "
+			}
+			creationStr += fmt.Sprintf("%d: %d", entry.year, entry.count)
+		}
+		sortedUpdateCounts := sortByYear(user.ReposUpdated)
+		for i, entry := range sortedUpdateCounts {
+			if i > 0 {
+				updateStr += ", "
+			}
+			updateStr += fmt.Sprintf("%d: %d", entry.year, entry.count)
+		}
+
 		ut.table.SetCell(row, 0, tview.NewTableCell(user.Username).SetAlign(tview.AlignCenter).SetMaxWidth(15).SetExpansion(1))
 		ut.table.SetCell(row, 1, tview.NewTableCell(user.Name).SetAlign(tview.AlignCenter).SetMaxWidth(15).SetExpansion(1))
 		ut.table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%d", user.Followers)).SetAlign(tview.AlignCenter).SetMaxWidth(10).SetExpansion(1))
-		ut.table.SetCell(row, 3, tview.NewTableCell(user.Languages).SetAlign(tview.AlignLeft).SetMaxWidth(20).SetExpansion(1))
+		ut.table.SetCell(row, 3, tview.NewTableCell(langsStr).SetAlign(tview.AlignLeft).SetMaxWidth(20).SetExpansion(1))
 		ut.table.SetCell(row, 4, tview.NewTableCell(fmt.Sprintf("%d", user.TotalForks)).SetAlign(tview.AlignCenter).SetMaxWidth(10).SetExpansion(1))
-		ut.table.SetCell(row, 5, tview.NewTableCell(user.ReposCreated).SetAlign(tview.AlignCenter).SetMaxWidth(20).SetExpansion(1))
-		ut.table.SetCell(row, 6, tview.NewTableCell(user.ReposUpdated).SetAlign(tview.AlignCenter).SetMaxWidth(20).SetExpansion(1))
+		ut.table.SetCell(row, 5, tview.NewTableCell(creationStr).SetAlign(tview.AlignLeft).SetMaxWidth(20).SetExpansion(1))
+		ut.table.SetCell(row, 6, tview.NewTableCell(updateStr).SetAlign(tview.AlignLeft).SetMaxWidth(20).SetExpansion(1))
+
 		row++
 	}
 
@@ -108,8 +139,8 @@ func fetchUserData(usernames []string) ([]UserData, error) {
 
 		totalLangs := make(Languages)
 		totalForks := 0
-		creationCounts := make(map[int]int)
-		updateCounts := make(map[int]int)
+		creationCounts := make(YearActivity)
+		updateCounts := make(YearActivity)
 		for _, repo := range repos {
 			langs, err := repo.Langs()
 			if err != nil {
@@ -130,44 +161,14 @@ func fetchUserData(usernames []string) ([]UserData, error) {
 			}
 		}
 
-		var langCounts []langCount
-		for lang, count := range totalLangs {
-			langCounts = append(langCounts, langCount{lang, count})
-		}
-		sort.Slice(langCounts, func(i, j int) bool {
-			return langCounts[i].count > langCounts[j].count
-		})
-		var resultLangs []string
-		for _, lc := range langCounts {
-			resultLangs = append(resultLangs, lc.lang)
-		}
-		langsStr := strings.Join(resultLangs, ", ")
-
-		var creationStr, updateStr string
-		sortedCreationCounts := sortByYear(creationCounts)
-	    for i, entry := range sortedCreationCounts {
-	        if i > 0 {
-	            creationStr += ", "
-	        }
-	        creationStr += fmt.Sprintf("%d: %d", entry.year, entry.count)
-	    }
-
-	    sortedUpdateCounts := sortByYear(updateCounts)
-	    for i, entry := range sortedUpdateCounts {
-	        if i > 0 {
-	            updateStr += ", "
-	        }
-	        updateStr += fmt.Sprintf("%d: %d", entry.year, entry.count)
-	    }
-
 		users = append(users, UserData{
 			Username:     user.Login,
 			Name:         user.Name,
 			Followers:    user.Followers,
-			Languages:    langsStr,
+			Languages:    totalLangs,
 			TotalForks:   totalForks,
-			ReposCreated: creationStr,
-			ReposUpdated: updateStr,
+			ReposCreated: creationCounts,
+			ReposUpdated: updateCounts,
 		})
 	}
 	return users, nil
@@ -199,10 +200,13 @@ func main() {
 		panic(err.Error())
 	}
 
+	startTime := time.Now()
 	users, err := fetchUserData(usernames)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to fetch user data: %v", err))
 	}
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Time taken to load data: %v\n", elapsedTime)
 
 	userTable := NewUserTable(users)
 	if err := userTable.RenderTable(); err != nil {

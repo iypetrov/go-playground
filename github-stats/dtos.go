@@ -7,6 +7,8 @@ import (
 
 type Languages map[string]int
 
+type YearActivity map[int]int
+
 type Repository struct {
 	ID                  int      `json:"id"`
 	NodeID              string   `json:"node_id"`
