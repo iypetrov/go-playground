@@ -1,0 +1,1 @@
+https://github.com/iypetrov/go-playground/tree/master/github-stats
