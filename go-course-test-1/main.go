@@ -1,18 +1,59 @@
 package main
 
-// dijkstra.go and queue.go are adjust implementation of this lib
-// https://github.com/albertorestifo/dijkstra/tree/aba76f725f72b3086bd6957f94692feb8a5f9bb9
-
 import (
 	"bufio"
 	"fmt"
 	"html/template"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 )
+
+type Vertex struct {
+	Key   int
+	Edges map[int]float64
+}
+
+type Graph struct {
+	Vertices map[int]*Vertex
+}
+
+func (g *Graph) Dijkstra(startKey int) (map[int]float64, map[int]int, error) {
+	distances := make(map[int]float64)
+	previous := make(map[int]int)
+	for key := range g.Vertices {
+		distances[key] = math.MaxFloat64
+	}
+	distances[startKey] = 0
+
+	visited := make(map[int]bool)
+	for len(visited) < len(g.Vertices) {
+		var current *Vertex
+		var minDist float64
+		for _, vertex := range g.Vertices {
+			if !visited[vertex.Key] && (current == nil || distances[vertex.Key] < minDist) {
+				current = vertex
+				minDist = distances[vertex.Key]
+			}
+		}
+
+		visited[current.Key] = true
+		for neighborKey, cost := range current.Edges {
+			if !visited[neighborKey] {
+				newDist := distances[current.Key] + cost
+				if newDist < distances[neighborKey] {
+					distances[neighborKey] = newDist
+					previous[neighborKey] = current.Key
+				}
+			}
+		}
+	}
+
+	return distances, previous, nil
+}
 
 func LoadCities(filename string) (map[int]string, map[int]map[int]float64, error) {
 	file, err := os.Open(filename)
@@ -82,7 +123,7 @@ func Render(w io.Writer, name string, data interface{}) error {
 type State struct {
 	Cities map[int]string
 	Path   string
-	Cost   float64
+	Cost   string
 }
 
 func main() {
@@ -94,18 +135,31 @@ func main() {
 	cities, distances, err := LoadCities(filename)
 	if err != nil {
 		fmt.Println(err.Error())
+		return
+	}
+
+	graph := &Graph{Vertices: make(map[int]*Vertex)}
+	for key, _ := range distances {
+		vertex := &Vertex{Key: key, Edges: make(map[int]float64)}
+		graph.Vertices[key] = vertex
+	}
+
+	for from, edges := range distances {
+		fromVertex := graph.Vertices[from]
+		for to, cost := range edges {
+			fromVertex.Edges[to] = cost
+		}
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		state := State{
 			Cities: cities,
 			Path:   "",
-			Cost:   0.0,
 		}
 		Render(w, "index", state)
 	})
-	mux.HandleFunc("POST /distance", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/distance", func(w http.ResponseWriter, r *http.Request) {
 		city1Str := r.FormValue("city1")
 		city1, err := strconv.Atoi(city1Str)
 		if err != nil {
@@ -120,30 +174,37 @@ func main() {
 			return
 		}
 
-		g := Graph(distances)
-		path, cost, err := g.Path(city1, city2)
+		var path []string
+		resultDijkstra, previous, err := graph.Dijkstra(city1)
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("Error:", err)
+		} else {
+			fmt.Println("Shortest distances from vertex", city1)
+			for key, dist := range resultDijkstra {
+				fmt.Printf("Vertex %d: %f\n", key, dist)
+			}
+
+			current := city2
+			for current != city1 {
+				if cityName, exists := cities[current]; exists {
+					path = append([]string{cityName}, path...)
+				}
+				current = previous[current]
+			}
+			if cityName, exists := cities[city1]; exists {
+				path = append([]string{cityName}, path...)
+			}
+
+			fmt.Println("Shortest path from city", city1, "to city", city2, ":", strings.Join(path, " -> "))
 		}
 
-		var result []string
-		for _, key := range path {
-			if val, exists := cities[key]; exists {
-				result = append(result, val)
-			}
-		}
 		state := State{
 			Cities: cities,
-			Path:   strings.Join(result, " -> "),
-			Cost:   cost,
+			Path:   strings.Join(path, " -> "),
+			Cost:   fmt.Sprintf("%.2f", resultDijkstra[city2]),
 		}
 		Render(w, "index", state)
 	})
 
 	http.ListenAndServe(":8080", mux)
-
-	fmt.Println("Cities:")
-	fmt.Println(cities)
-	fmt.Println("Distances:")
-	fmt.Println(distances)
 }
