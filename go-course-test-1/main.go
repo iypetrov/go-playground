@@ -106,6 +106,10 @@ func LoadCities(filename string) (map[int]string, map[int]map[int]float64, error
 				distances[city1ID] = make(map[int]float64)
 			}
 			distances[city1ID][city2ID] = distance
+			if distances[city2ID] == nil {
+				distances[city2ID] = make(map[int]float64)
+			}
+			distances[city2ID][city1ID] = distance
 		}
 	}
 
