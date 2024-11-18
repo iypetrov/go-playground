@@ -205,7 +205,7 @@ func main() {
 	filename := os.Args[1]
 	file, err := os.Open(filename)
 	if err != nil {
-		panic("Failed to open file")
+		panic("failed to open file")
 	}
 	defer file.Close()
 
