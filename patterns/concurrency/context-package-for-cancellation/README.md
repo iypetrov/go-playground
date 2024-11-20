@@ -2,7 +2,7 @@
 
 `context` package provides a standardized way to carry deadlines, cancellation signals, and other request-scoped values across api boundaries and between processes
 
-![diagram](propagete-cancellation-signal.png)
+![propagate-cancellatio -signal](propagate-cancellation-signal.png)
 one of the most powerful features of the `context` package is its ability to propagate cancellation signals down a call graph
 
 particularly useful for cleaning up resources, stopping long-running operations, or handling timeouts in concurrent programs
