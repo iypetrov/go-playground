@@ -6,10 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>advanced-cognito</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.14/dist/full.min.css" rel="stylesheet" type="text/css" />
 	<script src="https://unpkg.com/htmx.org@2.0.3" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-	<h1>Register</h1>
+<body class="flex items-center justify-center h-screen">
+        <form hx-post="/api/v0/register" class="flex flex-col items-center justify-center w-full">
+    		<div class="w-full h-auto">
+    			<div class="flex flex-col w-full">
+                <input type="text" name="Email" placeholder="Enter your email" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"/>
+    			</div>
+    			<div class="flex flex-col w-full">
+                    <input type="password" name="Password" placeholder="Enter your password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"/>
+    			</div>
+    			<div class="flex items-center justify-center w-full mt-3">
+    				<button
+    					type="submit"
+    					hx-disabled-elt="this"
+    					class="text-base-100 bg-secondary hover:bg-secondary/80 mt-3 inline-flex items-center justify-center px-4 py-2 font-medium text-sm rounded-md"
+    				>
+                        Register
+    				</button>
+    			</div>
+    		</div>
+    	</form>
 </body>
 </html>
 {{ end }}
