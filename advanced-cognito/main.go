@@ -96,7 +96,7 @@ func main() {
 				log.Panic(err)
 			}
 
-			output, err := cognitoClient.SignUp(r.Context(), &cip.SignUpInput{
+			_, err = cognitoClient.SignUp(r.Context(), &cip.SignUpInput{
 				ClientId: aws.String(os.Getenv("AWS_COGNITO_CLIENT_ID")),
 				Username: aws.String(req.Email),
 				Password: aws.String(req.Password),
@@ -107,7 +107,23 @@ func main() {
 					Message:    AWSError(err),
 				}
 			}
-			log.Println(output)
+
+			w.Write([]byte("check your email to verify your email"))
+			return nil
+		}))
+
+		mux.Post("/federated-register", Make(func(w http.ResponseWriter, r *http.Request) error {
+			_, err := cognitoClient.InitiateAuth(ctx, &cip.InitiateAuthInput{
+				AuthFlow: "USER_SRP_AUTH",
+				ClientId: aws.String(os.Getenv("AWS_COGNITO_CLIENT_ID")),
+				AuthParameters: map[string]string{
+					"IDP_TOKEN": "token",
+					"IDP":       "Google",
+				},
+			})
+			if err != nil {
+				return err
+			}
 
 			w.Write([]byte("check your email to verify your email"))
 			return nil
