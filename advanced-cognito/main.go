@@ -112,22 +112,46 @@ func main() {
 			return nil
 		}))
 
-		mux.Post("/federated-register", Make(func(w http.ResponseWriter, r *http.Request) error {
-			_, err := cognitoClient.InitiateAuth(ctx, &cip.InitiateAuthInput{
-				AuthFlow: "USER_SRP_AUTH",
-				ClientId: aws.String(os.Getenv("AWS_COGNITO_CLIENT_ID")),
-				AuthParameters: map[string]string{
-					"IDP_TOKEN": "token",
-					"IDP":       "Google",
-				},
-			})
-			if err != nil {
-				return err
-			}
+mux.Post("/federated-register", Make(func(w http.ResponseWriter, r *http.Request) error {
+    // Parse the form to get the Google ID token sent from the frontend
+    err := r.ParseForm()
+    if err != nil {
+        return Error{
+            StatusCode: http.StatusBadRequest,
+            Message:    "Invalid form submission",
+        }
+    }
 
-			w.Write([]byte("check your email to verify your email"))
-			return nil
-		}))
+    // Extract ID token from the request
+    idpToken := r.FormValue("IDPToken")
+    if idpToken == "" {
+        return Error{
+            StatusCode: http.StatusBadRequest,
+            Message:    "IDPToken is required",
+        }
+    }
+
+    // Call Cognito with IDP_TOKEN
+    _, err = cognitoClient.AdminInitiateAuth(ctx, &cip.AdminInitiateAuthInput{
+        AuthFlow: "CUSTOM_AUTH",
+        ClientId: aws.String(os.Getenv("AWS_COGNITO_CLIENT_ID")),
+        AuthParameters: map[string]string{
+            "IDP_TOKEN": idpToken,  // Google token
+            "IDP":       "Google", // Specify the provider
+        },
+    })
+    if err != nil {
+        return Error{
+            StatusCode: http.StatusBadRequest,
+            Message:    AWSError(err),
+        }
+    }
+
+    // Respond with success
+    w.Write([]byte("Federated registration successful. Check your email to verify your account."))
+    return nil
+}))
+
 	})
 	http.ListenAndServe(":8080", mux)
 }
