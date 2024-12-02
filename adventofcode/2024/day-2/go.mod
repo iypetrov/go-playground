@@ -1,4 +1,4 @@
-module github.com/iypetrov/dayone
+module github.com/iypetrov/day-3
 
 go 1.23.1
 
