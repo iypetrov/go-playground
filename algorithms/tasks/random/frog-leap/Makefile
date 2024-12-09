@@ -8,3 +8,7 @@ run:
 
 test:
 	go test
+
+fmt:
+	@go fmt ./...
+	@goimports -l -w .

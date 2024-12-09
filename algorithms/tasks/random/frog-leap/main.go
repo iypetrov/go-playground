@@ -2,151 +2,84 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"strings"
+	"time"
 
-	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/emirpasic/gods/stacks/arraystack"
 )
 
-func StartState(n int) string {
-	leftFrogs := strings.Repeat(">", n)
-	emptyField := "_"
-	rightFrogs := strings.Repeat("<", n)
-
-	return leftFrogs + emptyField + rightFrogs
+func swap(frogs string, i, j int) string {
+	runes := []rune(frogs)
+	runes[i], runes[j] = runes[j], runes[i]
+	return string(runes)
 }
 
-func FinalState(n int) string {
-	leftFrogs := strings.Repeat("<", n)
-	emptyField := "_"
-	rightFrogs := strings.Repeat(">", n)
+// sometimes tests might fail because it can start with both left and right side
+func dfs(frogs, goal string, visited map[string]bool, stack *arraystack.Stack) bool {
+	if frogs == goal {
+		return true
+	}
 
-	return leftFrogs + emptyField + rightFrogs
-}
+	blank := strings.Index(frogs, "_")
 
-func GeneratePossiblePositions(current string) []string {
-	var positions []string
-	length := len(current)
+	children := make(map[string]bool)
 
-	for i := 0; i < length; i++ {
-		if current[i] == '_' {
-			continue
-		}
+	//  1 left
+	if blank >= 1 && frogs[blank-1] == '>' {
+		children[swap(frogs, blank, blank-1)] = true
+	}
+	// 1 right
+	if blank <= len(frogs)-2 && frogs[blank+1] == '<' {
+		children[swap(frogs, blank, blank+1)] = true
+	}
+	// 2 left
+	if blank >= 2 && frogs[blank-2] == '>' {
+		children[swap(frogs, blank, blank-2)] = true
+	}
+	// 2 right 
+	if blank <= len(frogs)-3 && frogs[blank+2] == '<' {
+		children[swap(frogs, blank, blank+2)] = true
+	}
 
-		if current[i] == '>' {
-			if i < len(current)-1 && current[i+1] == '_' {
-				tmp := []rune(current)
-				tmp[i] = '_'
-				tmp[i+1] = '>'
-				positions = append(positions, string(tmp))
-			}
-			if i < len(current)-2 && current[i+2] == '_' {
-				tmp := []rune(current)
-				tmp[i] = '_'
-				tmp[i+2] = '>'
-				positions = append(positions, string(tmp))
-			}
-		}
-
-		if current[i] == '<' {
-			if i > 0 && current[i-1] == '_' {
-				tmp := []rune(current)
-				tmp[i] = '_'
-				tmp[i-1] = '<'
-				positions = append(positions, string(tmp))
-			}
-			if i > 1 && current[i-2] == '_' {
-				tmp := []rune(current)
-				tmp[i] = '_'
-				tmp[i-2] = '<'
-				positions = append(positions, string(tmp))
+	for child := range children {
+		if !visited[child] {
+			visited[child] = true
+			if dfs(child, goal, visited, stack) {
+				stack.Push(child)
+				return true
 			}
 		}
 	}
-
-	return positions
-}
-
-type Node struct {
-	Value    string
-	Parent   *Node
-	Children []*Node
-}
-
-func GenerateChildren(node *Node) {
-	if node == nil {
-		return
-	}
-
-	vals := GeneratePossiblePositions(node.Value)
-	children := make([]*Node, 0)
-	for _, val := range vals {
-		tmp := Node{
-			Value:    val,
-			Parent:   node,
-			Children: []*Node{},
-		}
-		children = append(children, &tmp)
-	}
-
-	node.Children = children
+	return false
 }
 
 func FrogLeap(n int) []string {
-	root := Node{
-		Value:    StartState(n),
-		Parent:   nil,
-		Children: []*Node{},
-	}
+	init := strings.Repeat(">", n) + "_" + strings.Repeat("<", n)
+	goal := strings.Repeat("<", n) + "_" + strings.Repeat(">", n)
 
-	return DFS(&root, n)
-}
+	visited := make(map[string]bool)
+	visited[init] = true
 
-func DFS(root *Node, n int) []string {
 	stack := arraystack.New()
-	visited := hashset.New()
-	var fNode *Node
-	result := []string{}
 
-	if root == nil {
-		return result
+	start := time.Now()
+	if !dfs(init, goal, visited, stack) {
+		fmt.Println("no solution found")
+		return []string{}
 	}
+	stack.Push(init)
 
-	stack.Push(root)
+	duration := time.Since(start).Milliseconds()
+
+	steps := []string{}
 	for !stack.Empty() {
-		tmp, _ := stack.Pop()
-		node := tmp.(*Node)
-		if node.Value == FinalState(n) {
-			fNode = node
-			break
-		}
-
-		if visited.Contains(node) {
-			continue
-		}
-		visited.Add(node)
-
-		GenerateChildren(node)
-		for i := len(node.Children) - 1; i >= 0; i-- {
-			child := node.Children[i]
-			if !visited.Contains(child) {
-				stack.Push(child)
-			}
-		}
+		step, _ := stack.Pop()
+		steps = append(steps, step.(string))
 	}
 
-	if fNode == nil {
-		return result
-	}
+	fmt.Printf("solved in %dms\n", duration)
 
-	for fNode != nil {
-		result = append(result, fNode.Value)
-		fNode = fNode.Parent
-	}
-
-	slices.Reverse(result)
-	return result
+	return steps
 }
 
 func main() {
