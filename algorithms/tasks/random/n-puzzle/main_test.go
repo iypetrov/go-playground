@@ -20,57 +20,54 @@ func TestNPuzzle(t *testing.T) {
 			bestPathLen: 2,
 			steps:       []string{"right", "right"},
 		},
-		// {
-		// 	numberSlots: 8,
-		// 	indexZero:   4,
-		// 	positions:   []int{1, 0, 3, 4, 2, 5, 6, 7, 8},
-		// 	bestPathLen: 1,
-		// 	steps:       []string{"up"},
-		// },
-		// {
-		// 	numberSlots: 8,
-		// 	indexZero:   8,
-		// 	positions:   []int{1, 2, 3, 4, 5, 6, 0, 7, 8},
-		// 	bestPathLen: 2,
-		// 	steps:       []string{"left", "left"},
-		// },
-		// {
-		// 	numberSlots: 8,
-		// 	indexZero:   -1,
-		// 	positions:   []int{1, 2, 3, 4, 5, 6, 0, 7, 8},
-		// 	bestPathLen: 2,
-		// 	steps:       []string{"left", "left"},
-		// },
-		// {
-		// 	numberSlots: 15,
-		// 	indexZero:   0,
-		// 	positions:   []int{1, 2, 3, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-		// 	bestPathLen: 3,
-		// 	steps:       []string{"right", "right", "right"},
-		// },
-		// {
-		// 	numberSlots: 15,
-		// 	indexZero:   15,
-		// 	positions:   []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 14, 15},
-		// 	bestPathLen: 3,
-		// 	steps:       []string{"left", "left", "left"},
-		// },
-		// {
-		// 	numberSlots: 15,
-		// 	indexZero:   -1,
-		// 	positions:   []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 14, 15},
-		// 	bestPathLen: 3,
-		// 	steps:       []string{"left", "left", "left"},
-		// },
+		{
+			numberSlots: 8,
+			indexZero:   4,
+			positions:   []int{1, 0, 3, 4, 2, 5, 6, 7, 8},
+			bestPathLen: 1,
+			steps:       []string{"up"},
+		},
+		{
+			numberSlots: 8,
+			indexZero:   8,
+			positions:   []int{1, 2, 3, 4, 5, 6, 0, 7, 8},
+			bestPathLen: 2,
+			steps:       []string{"left", "left"},
+		},
+		{
+			numberSlots: 8,
+			indexZero:   -1,
+			positions:   []int{1, 2, 3, 4, 5, 6, 0, 7, 8},
+			bestPathLen: 2,
+			steps:       []string{"left", "left"},
+		},
+		{
+			numberSlots: 15,
+			indexZero:   0,
+			positions:   []int{1, 2, 3, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+			bestPathLen: 3,
+			steps:       []string{"right", "right", "right"},
+		},
+		{
+			numberSlots: 15,
+			indexZero:   15,
+			positions:   []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 14, 15},
+			bestPathLen: 3,
+			steps:       []string{"left", "left", "left"},
+		},
+		{
+			numberSlots: 15,
+			indexZero:   -1,
+			positions:   []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 14, 15},
+			bestPathLen: 3,
+			steps:       []string{"left", "left", "left"},
+		},
 	}
 
-	name := "NPuzzle"
-	algo := NPuzzle
 	for _, test := range tests {
-		len, result := algo(test.numberSlots, test.indexZero, test.positions)
+		_, result := NPuzzle(test.numberSlots, test.indexZero, test.positions)
 		if !reflect.DeepEqual(result, test.steps) {
-			t.Errorf("[%s] expected %v, got %v", name, test.bestPathLen, len)
-			t.Errorf("[%s] expected %v, got %v", name, test.steps, result)
+			t.Errorf("[NPuzzle] expected %v, got %v", test.steps, result)
 		}
 	}
 }
