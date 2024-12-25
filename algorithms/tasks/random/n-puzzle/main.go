@@ -137,13 +137,13 @@ func (b *Board) Left() *Board {
 	emptyTileColumn := emptyTileIndex % dimension
 
 	if emptyTileColumn-1 >= 0 {
-		tempBoard := b
+		tempBoard := *b
 		tempBoard.Tiles = append([]int(nil), b.Tiles...)
 		temp := tempBoard.Tiles[emptyTileIndex-1]
 		tempBoard.Tiles[emptyTileIndex-1] = tempBoard.Tiles[emptyTileIndex]
 		tempBoard.Tiles[emptyTileIndex] = temp
 		tempBoard.EmptyTileIndex = emptyTileIndex - 1
-		return tempBoard
+		return &tempBoard
 	}
 
 	return nil
@@ -155,13 +155,13 @@ func (b *Board) Right() *Board {
 	emptyTileColumn := emptyTileIndex % dimension
 
 	if emptyTileColumn+1 < dimension {
-		tempBoard := b
+		tempBoard := *b
 		tempBoard.Tiles = append([]int(nil), b.Tiles...)
 		temp := tempBoard.Tiles[emptyTileIndex+1]
 		tempBoard.Tiles[emptyTileIndex+1] = tempBoard.Tiles[emptyTileIndex]
 		tempBoard.Tiles[emptyTileIndex] = temp
 		tempBoard.EmptyTileIndex = emptyTileIndex + 1
-		return tempBoard
+		return &tempBoard
 	}
 
 	return nil
@@ -173,13 +173,13 @@ func (b *Board) Top() *Board {
 	emptyTileRow := emptyTileIndex / dimension
 
 	if emptyTileRow-1 >= 0 {
-		tempBoard := b
+		tempBoard := *b
 		tempBoard.Tiles = append([]int(nil), b.Tiles...)
 		temp := tempBoard.Tiles[emptyTileIndex-dimension]
 		tempBoard.Tiles[emptyTileIndex-dimension] = tempBoard.Tiles[emptyTileIndex]
 		tempBoard.Tiles[emptyTileIndex] = temp
 		tempBoard.EmptyTileIndex = emptyTileIndex - dimension
-		return tempBoard
+		return &tempBoard
 	}
 
 	return nil
@@ -191,13 +191,13 @@ func (b *Board) Bottom() *Board {
 	emptyTileRow := emptyTileIndex / dimension
 
 	if emptyTileRow+1 < dimension {
-		tempBoard := b
+		tempBoard := *b
 		tempBoard.Tiles = append([]int(nil), b.Tiles...)
 		temp := tempBoard.Tiles[emptyTileIndex+dimension]
 		tempBoard.Tiles[emptyTileIndex+dimension] = tempBoard.Tiles[emptyTileIndex]
 		tempBoard.Tiles[emptyTileIndex] = temp
 		tempBoard.EmptyTileIndex = emptyTileIndex + dimension
-		return tempBoard
+		return &tempBoard
 	}
 
 	return nil

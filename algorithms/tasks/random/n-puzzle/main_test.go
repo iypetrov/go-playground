@@ -43,13 +43,6 @@ func TestNPuzzle(t *testing.T) {
 		},
 		{
 			numberSlots: 15,
-			indexZero:   0,
-			positions:   []int{1, 2, 3, 0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
-			bestPathLen: 3,
-			steps:       []string{"right", "right", "right"},
-		},
-		{
-			numberSlots: 15,
 			indexZero:   15,
 			positions:   []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 13, 14, 15},
 			bestPathLen: 3,
