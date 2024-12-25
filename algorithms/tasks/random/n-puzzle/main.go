@@ -4,216 +4,348 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/deckarep/golang-set/v2"
+	"github.com/emirpasic/gods/sets/hashset"
 )
 
-type Tile int
 type Direction int
 
 const (
-	Left Direction = iota
-	Right
-	Up
-	Down
+	LEFT Direction = iota
+	RIGHT
+	TOP
+	DOWN
+	NONE
 )
 
-type Board struct {
-	tiles          []Tile
-	dimension      int
-	emptyTileIndex int
+func (d Direction) ToString() string {
+	switch d {
+	case LEFT:
+		return "right"
+	case RIGHT:
+		return "left"
+	case TOP:
+		return "down"
+	case DOWN:
+		return "up"
+	default:
+		return ""
+	}
 }
 
-func (b *Board) Equals(other Board) bool {
-	if len(b.tiles) != len(other.tiles) {
-		return false
+type Board struct {
+	Tiles          []int
+	Dimension      float64
+	EmptyTileIndex int
+}
+
+func NewBoard(size int, tiles []int) Board {
+	size++
+	return Board{
+		Tiles:          tiles,
+		Dimension:      math.Sqrt(float64(size)),
+		EmptyTileIndex: findEmptyTileIndex(tiles),
 	}
-	for i := range b.tiles {
-		if b.tiles[i] != other.tiles[i] {
+}
+
+func findEmptyTileIndex(tiles []int) int {
+	for i, tile := range tiles {
+		if tile == 0 {
+			return i
+		}
+	}
+	return -1
+}
+
+func (b *Board) ManhattanDistance(goal Board) int {
+	currentPositions := make(TilePosition)
+	goalPositions := make(TilePosition)
+	size := len(b.Tiles)
+
+	for i := 0; i < size; i++ {
+		currentPositions[b.Tiles[i]] = struct {
+			Row    int
+			Column int
+		}{
+			Row:    int(i / int(b.Dimension)),
+			Column: i % int(b.Dimension),
+		}
+
+		goalPositions[goal.Tiles[i]] = struct {
+			Row    int
+			Column int
+		}{
+			Row:    int(i / int(goal.Dimension)),
+			Column: i % int(goal.Dimension),
+		}
+	}
+
+	sum := 0
+	for tile, position := range currentPositions {
+		goalPosition := goalPositions[tile]
+		sum += int(math.Abs(float64(position.Row-goalPosition.Row)) + math.Abs(float64(position.Column-goalPosition.Column)))
+	}
+
+	return sum
+}
+
+func (b *Board) Goal(endEmptyTileIndex int) Board {
+	size := len(b.Tiles)
+	if endEmptyTileIndex == -1 {
+		endEmptyTileIndex = size - 1
+	}
+
+	goalBoard := Board{
+		Tiles:          make([]int, size+1),
+		Dimension:      math.Sqrt(float64(size)),
+		EmptyTileIndex: endEmptyTileIndex,
+	}
+
+	for i := 0; i < endEmptyTileIndex; i++ {
+		goalBoard.Tiles[i] = i + 1
+	}
+	for i := endEmptyTileIndex; i < size; i++ {
+		goalBoard.Tiles[i] = i
+	}
+	goalBoard.Tiles[endEmptyTileIndex] = 0
+
+	return goalBoard
+}
+
+func (b *Board) Solvable() bool {
+	tiles := b.Tiles
+	dimension := int(b.Dimension)
+	inversions := 0
+	for i := 0; i < len(tiles)-1; i++ {
+		for j := i + 1; j < len(tiles); j++ {
+			if tiles[i] > 0 && tiles[j] > 0 && tiles[i] > tiles[j] {
+				inversions++
+			}
+		}
+	}
+
+	if int(b.Dimension)%2 != 0 {
+		return inversions%2 == 0
+	} else {
+		emptyRowIndex := int(math.Floor(float64(b.EmptyTileIndex) / float64(dimension)))
+		return (emptyRowIndex+inversions)%2 != 0
+	}
+}
+
+func (b *Board) Left() *Board {
+	dimension := int(b.Dimension)
+	emptyTileIndex := b.EmptyTileIndex
+	emptyTileColumn := emptyTileIndex % dimension
+
+	if emptyTileColumn-1 >= 0 {
+		tempBoard := b
+		tempBoard.Tiles = append([]int(nil), b.Tiles...)
+		temp := tempBoard.Tiles[emptyTileIndex-1]
+		tempBoard.Tiles[emptyTileIndex-1] = tempBoard.Tiles[emptyTileIndex]
+		tempBoard.Tiles[emptyTileIndex] = temp
+		tempBoard.EmptyTileIndex = emptyTileIndex - 1
+		return tempBoard
+	}
+
+	return nil
+}
+
+func (b *Board) Right() *Board {
+	dimension := int(b.Dimension)
+	emptyTileIndex := b.EmptyTileIndex
+	emptyTileColumn := emptyTileIndex % dimension
+
+	if emptyTileColumn+1 < dimension {
+		tempBoard := b
+		tempBoard.Tiles = append([]int(nil), b.Tiles...)
+		temp := tempBoard.Tiles[emptyTileIndex+1]
+		tempBoard.Tiles[emptyTileIndex+1] = tempBoard.Tiles[emptyTileIndex]
+		tempBoard.Tiles[emptyTileIndex] = temp
+		tempBoard.EmptyTileIndex = emptyTileIndex + 1
+		return tempBoard
+	}
+
+	return nil
+}
+
+func (b *Board) Top() *Board {
+	dimension := int(b.Dimension)
+	emptyTileIndex := b.EmptyTileIndex
+	emptyTileRow := emptyTileIndex / dimension
+
+	if emptyTileRow-1 >= 0 {
+		tempBoard := b
+		tempBoard.Tiles = append([]int(nil), b.Tiles...)
+		temp := tempBoard.Tiles[emptyTileIndex-dimension]
+		tempBoard.Tiles[emptyTileIndex-dimension] = tempBoard.Tiles[emptyTileIndex]
+		tempBoard.Tiles[emptyTileIndex] = temp
+		tempBoard.EmptyTileIndex = emptyTileIndex - dimension
+		return tempBoard
+	}
+
+	return nil
+}
+
+func (b *Board) Bottom() *Board {
+	dimension := int(b.Dimension)
+	emptyTileIndex := b.EmptyTileIndex
+	emptyTileRow := emptyTileIndex / dimension
+
+	if emptyTileRow+1 < dimension {
+		tempBoard := b
+		tempBoard.Tiles = append([]int(nil), b.Tiles...)
+		temp := tempBoard.Tiles[emptyTileIndex+dimension]
+		tempBoard.Tiles[emptyTileIndex+dimension] = tempBoard.Tiles[emptyTileIndex]
+		tempBoard.Tiles[emptyTileIndex] = temp
+		tempBoard.EmptyTileIndex = emptyTileIndex + dimension
+		return tempBoard
+	}
+
+	return nil
+}
+
+func (b *Board) Equal(board Board) bool {
+	for i, tile := range b.Tiles {
+		if tile != board.Tiles[i] {
 			return false
 		}
 	}
 	return true
 }
 
+func (b *Board) ToString() string {
+	return fmt.Sprintf("%v", b.Tiles)
+}
+
+type TilePosition map[int]struct {
+	Row    int
+	Column int
+}
+
 type ManhattanState struct {
-	board     Board
-	direction Direction
-	g         int // cost from the start state
-	h         int // heuristic cost (Manhattan distance)
+	Goal      Board
+	Board     Board
+	Direction Direction
+	G         int
+	H         int
 }
 
-var goal Board
-var visited = mapset.NewSet[Board]()
-
-// Create a goal board based on the size and empty tile index
-func goalBoard(size int, emptyTileIndex int) Board {
-	board := Board{dimension: int(math.Sqrt(float64(size + 1)))}
-	board.tiles = make([]Tile, size+1)
-	board.emptyTileIndex = emptyTileIndex
-	i := 0
-	for ; i < emptyTileIndex; i++ {
-		board.tiles[i] = Tile(i + 1)
+func NewManhattanState(goal, board Board, direction Direction, g int) ManhattanState {
+	return ManhattanState{
+		Goal:      goal,
+		Board:     board,
+		Direction: direction,
+		G:         g,
+		H:         board.ManhattanDistance(goal),
 	}
-	for ; i <= size; i++ {
-		board.tiles[i] = Tile(i)
-	}
-	board.tiles[emptyTileIndex] = 0
-	return board
 }
 
-// Manhattan distance heuristic
-func (b *Board) manhattan(goal Board) int {
-	currentPositions := make(map[Tile][2]int)
-	goalPositions := make(map[Tile][2]int)
+func (ms *ManhattanState) Neighbours() []ManhattanState {
+	var neighbours []ManhattanState
 
-	for i, tile := range b.tiles {
-		currentPositions[tile] = [2]int{i / b.dimension, i % b.dimension}
-		goalPositions[goal.tiles[i]] = [2]int{i / goal.dimension, i % goal.dimension}
+	left := ms.Board.Left()
+	if left != nil {
+		neighbours = append(neighbours, NewManhattanState(ms.Goal, *left, LEFT, ms.G+1))
 	}
 
-	dist := 0
-	for tile, pos := range currentPositions {
-		goalPos := goalPositions[tile]
-		dist += int(math.Abs(float64(pos[0]-goalPos[0]))) + int(math.Abs(float64(pos[1]-goalPos[1])))
+	right := ms.Board.Right()
+	if right != nil {
+		neighbours = append(neighbours, NewManhattanState(ms.Goal, *right, RIGHT, ms.G+1))
 	}
-	return dist
+
+	top := ms.Board.Top()
+	if top != nil {
+		neighbours = append(neighbours, NewManhattanState(ms.Goal, *top, TOP, ms.G+1))
+	}
+
+	bottom := ms.Board.Bottom()
+	if bottom != nil {
+		neighbours = append(neighbours, NewManhattanState(ms.Goal, *bottom, DOWN, ms.G+1))
+	}
+
+	return neighbours
 }
 
-// Get the neighbors of a given board state
-func (b *Board) getNeighbors() []ManhattanState {
-	var neighbors []ManhattanState
-	// Get potential moves for left, right, up, down
-	emptyTileY := b.emptyTileIndex % b.dimension
-	emptyTileX := b.emptyTileIndex / b.dimension
+func (ms *ManhattanState) Search(goal Board) ([]string, int, error) {
+	bound := ms.H
+	var path []ManhattanState
+	path = append(path, *ms)
 
-	// Left
-	if emptyTileY > 0 {
-		newBoard := *b
-		newBoard.tiles[b.emptyTileIndex-1], newBoard.tiles[b.emptyTileIndex] = newBoard.tiles[b.emptyTileIndex], newBoard.tiles[b.emptyTileIndex-1]
-		newBoard.emptyTileIndex = b.emptyTileIndex - 1
-		neighbors = append(neighbors, ManhattanState{board: newBoard, direction: Left, g: 1, h: newBoard.manhattan(goal)})
-	}
+	visited := hashset.New()
+	visited.Add(ms.Board.ToString())
 
-	// Right
-	if emptyTileY < b.dimension-1 {
-		newBoard := *b
-		newBoard.tiles[b.emptyTileIndex+1], newBoard.tiles[b.emptyTileIndex] = newBoard.tiles[b.emptyTileIndex], newBoard.tiles[b.emptyTileIndex+1]
-		newBoard.emptyTileIndex = b.emptyTileIndex + 1
-		neighbors = append(neighbors, ManhattanState{board: newBoard, direction: Right, g: 1, h: newBoard.manhattan(goal)})
-	}
-
-	// Up
-	if emptyTileX > 0 {
-		newBoard := *b
-		newBoard.tiles[b.emptyTileIndex-b.dimension], newBoard.tiles[b.emptyTileIndex] = newBoard.tiles[b.emptyTileIndex], newBoard.tiles[b.emptyTileIndex-b.dimension]
-		newBoard.emptyTileIndex = b.emptyTileIndex - b.dimension
-		neighbors = append(neighbors, ManhattanState{board: newBoard, direction: Up, g: 1, h: newBoard.manhattan(goal)})
-	}
-
-	// Down
-	if emptyTileX < b.dimension-1 {
-		newBoard := *b
-		newBoard.tiles[b.emptyTileIndex+b.dimension], newBoard.tiles[b.emptyTileIndex] = newBoard.tiles[b.emptyTileIndex], newBoard.tiles[b.emptyTileIndex+b.dimension]
-		newBoard.emptyTileIndex = b.emptyTileIndex + b.dimension
-		neighbors = append(neighbors, ManhattanState{board: newBoard, direction: Down, g: 1, h: newBoard.manhattan(goal)})
-	}
-
-	return neighbors
-}
-
-// Check if the board is solvable
-func (b *Board) isSolvable() bool {
-	inversions := 0
-	for i := 0; i < len(b.tiles)-1; i++ {
-		for j := i + 1; j < len(b.tiles); j++ {
-			if b.tiles[i] > 0 && b.tiles[j] > 0 && b.tiles[i] > b.tiles[j] {
-				inversions++
-			}
+	for {
+		t := search(goal, bound, visited, &path)
+		if t == math.MaxInt {
+			return nil, -1, fmt.Errorf("board is not solvable")
 		}
+
+		if t == 0 {
+			var directions []string
+			for _, state := range path {
+				if state.Direction != NONE {
+					directions = append(directions, state.Direction.ToString())
+				}
+			}
+			return directions, len(path) - 1, nil
+		}
+
+		bound = t
 	}
-	emptyRow := b.emptyTileIndex / b.dimension
-	if b.dimension%2 == 0 {
-		return (inversions+emptyRow)%2 != 0
-	}
-	return inversions%2 == 0
 }
 
-// IDA* search algorithm
-func search(root ManhattanState, bound int) (path []ManhattanState, result int) {
-	f := root.g + root.h
+func search(goal Board, bound int, visited *hashset.Set, path *[]ManhattanState) int {
+	node := (*path)[len(*path)-1]
+	f := node.G + node.H
+
 	if f > bound {
-		return nil, f
+		return f
 	}
-	if root.board.Equals(goal) {
-		return []ManhattanState{root}, 0
+
+	if node.Board.Equal(goal) {
+		return 0
 	}
 
 	min := math.MaxInt
-	visited.Add(root.board)
+	for _, neighbour := range node.Neighbours() {
+		neighbourBoardString := neighbour.Board.ToString()
+		if !visited.Contains(neighbourBoardString) {
+			*path = append(*path, neighbour)
+			visited.Add(neighbourBoardString)
+			t := search(goal, bound, visited, path)
 
-	neighbors := root.board.getNeighbors()
-	for _, child := range neighbors {
-		if !visited.Contains(child.board) {
-			newPath, newResult := search(child, bound)
-			if newResult == 0 {
-				return append([]ManhattanState{root}, newPath...), 0
+			if t == 0 {
+				return 0
 			}
-			if newResult < min {
-				min = newResult
+
+			if t < min {
+				min = t
 			}
+
+			*path = (*path)[:len(*path)-1]
+			visited.Remove(neighbourBoardString)
 		}
 	}
 
-	visited.Remove(root.board)
-	return nil, min
+	return min
 }
 
-// Main function to run the IDA* search
-func idaStar(root ManhattanState) (path []ManhattanState, result int) {
-	bound := root.h
-	for {
-		_, result = search(root, bound)
-		if result == 0 {
-			return path, result
-		}
-		if result == math.MaxInt {
-			return nil, -1
-		}
-		bound = result
+func NPuzzle(size, emptyTileIndex int, tiles []int) ([]string, int, error) {
+	board := NewBoard(size, tiles)
+	goal := board.Goal(emptyTileIndex)
+
+	if !board.Solvable() {
+		return []string{}, -1, fmt.Errorf("board is not solvable")
 	}
+
+	startState := NewManhattanState(goal, board, NONE, 0)
+
+	path, steps, err := startState.Search(goal)
+	if err != nil {
+		return []string{}, -1, err
+	}
+	return path, steps, nil
 }
 
 func main() {
-	// Input
-	size := 8
-	emptyTileIndex := 8
-	board := Board{dimension: int(math.Sqrt(float64(size + 1)))}
-	board.tiles = make([]Tile, size+1)
-	for i := 0; i < size+1; i++ {
-		board.tiles[i] = Tile(i)
-		if board.tiles[i] == 0 {
-			board.emptyTileIndex = i
-		}
-	}
-
-	goal = goalBoard(size, emptyTileIndex)
-	if !board.isSolvable() {
-		fmt.Println(-1)
-		return
-	}
-
-	// Start the search
-	start := ManhattanState{board: board, g: 0, h: board.manhattan(goal)}
-	path, _ := idaStar(start)
-	fmt.Println(path)
-
-	// Output result
-	// if path == nil {
-	// 	fmt.Println(-1)
-	// } else {
-	// 	fmt.Println(len(path) - 1)
-	// 	for _, state := range path[1:] {
-	// 		fmt.Println(state.direction)
-	// 	}
-	// }
+	fmt.Println("hello n-puzzle")
 }

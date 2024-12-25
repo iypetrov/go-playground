@@ -64,10 +64,10 @@ func TestNPuzzle(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		_, result := NPuzzle(test.numberSlots, test.indexZero, test.positions)
+	for i, test := range tests {
+		result, _, _ := NPuzzle(test.numberSlots, test.indexZero, test.positions)
 		if !reflect.DeepEqual(result, test.steps) {
-			t.Errorf("[NPuzzle] expected %v, got %v", test.steps, result)
+			t.Errorf("[NPuzzle %d] expected %v, got %v", i, test.steps, result)
 		}
 	}
 }
