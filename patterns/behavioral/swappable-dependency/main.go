@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -26,11 +29,19 @@ func (s *SwappableInt) Swap(v int) {
 }
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	s := &SwappableInt{}
 
 	go func() {
-		time.Sleep(5 * time.Second)
-		s.Swap(5)
+		select {
+		case <-time.After(5 * time.Second):
+			s.Swap(5)
+		case <-ctx.Done():
+			fmt.Println("Swap goroutine exiting early due to signal")
+			return
+		}
 	}()
 
 	for {
@@ -39,7 +50,13 @@ func main() {
 			fmt.Println("Ready! Value is", v)
 			break
 		}
-		fmt.Println("Waiting for value...")
-		time.Sleep(500 * time.Millisecond)
+
+		select {
+		case <-time.After(500 * time.Millisecond):
+			fmt.Println("Waiting for value...")
+		case <-ctx.Done():
+			fmt.Println("Main loop exiting early due to signal")
+			return
+		}
 	}
 }
