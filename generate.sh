@@ -12,5 +12,5 @@ if [ ! -d "placeholder" ]; then
     exit 1
 fi
 
-cp -r placeholder "${PROJECT_NAME}"
+cp -r placeholder/* "${PROJECT_NAME}/"
 find "${PROJECT_NAME}" -type f -exec sed -i "s/placeholder/${PROJECT_NAME}/g" {} +
