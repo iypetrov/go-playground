@@ -13,4 +13,4 @@ if [ ! -d "placeholder" ]; then
 fi
 
 cp -r placeholder "${PROJECT_NAME}"
-find "${PROJECT_NAME}" -type f -exec sed -i '' "s/placeholder/${PROJECT_NAME}/g" {} +
+find "${PROJECT_NAME}" -type f -exec sed -i "s/placeholder/${PROJECT_NAME}/g" {} +
