@@ -8,8 +8,6 @@ The platform also provides real-time stock price updates and supports different 
 ### 1. DepositFunds, WithdrawFunds, GetBalance
 - Type: Request–Response (Unary RPC)
 - Description: Users can deposit or withdraw dollars into their trading account and check their current balance.
-    > Example:
-    > DepositFunds(amount=100) → Success, new_balance=100
 
 ### 2. TradeStatement
 - Type: Client-Side Streaming
