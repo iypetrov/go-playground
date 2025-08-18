@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package payments;
+option go_package = "github.com/iypetrov/grpc-learning/gen/payments";
+
+import "common/types.proto";
+
+service Payments {
+  rpc PurchaseTicket(types.Payment) returns (types.Ticket);
+  rpc PurchaseTickets(stream types.Payment) returns (types.Tickets);
+  rpc PaymentStream(stream types.Payment) returns (stream types.TicketUpdate);
+}

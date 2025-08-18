@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package events;
+option go_package = "github.com/iypetrov/grpc-learning/gen/events";
+
+import "google/protobuf/empty.proto";
+import "common/types.proto";
+
+service Events {
+  rpc CreateEvent(CreateEventRequest) returns (types.Event);
+  rpc StreamUpcomingEvents(google.protobuf.Empty) returns (stream types.Event);
+  rpc LiveTicketUpdates(stream types.TicketUpdate) returns (stream types.TicketUpdate);
+}
+
+message CreateEventRequest {
+  types.User user = 1;
+  types.EventType type = 2;
+  string name = 3;
+  string description = 4;
+  int32 numberTickets = 5;
+  double priceTickets = 6;
+}
