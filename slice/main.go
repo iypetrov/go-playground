@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type Foo struct{}
 
 type Bar struct{}
@@ -35,6 +37,33 @@ func convertGivenLength(foos []Foo) []Bar {
 		bars[i] = fooToBar(foo)
 	}
 	return bars
+}
+
+func f(s []int) {
+	_ = append(s, 10)
+}
+
+func listing1() {
+	s := []int{1, 2, 3}
+
+	f(s[:2])
+	fmt.Println(s)
+}
+
+func listing2() {
+	s := []int{1, 2, 3}
+	sCopy := make([]int, 2)
+	copy(sCopy, s)
+
+	f(sCopy)
+	result := append(sCopy, s[2])
+	fmt.Println(result)
+}
+
+func listing3() {
+	s := []int{1, 2, 3}
+	f(s[:2:2])
+	fmt.Println(s)
 }
 
 func main() {
@@ -75,4 +104,12 @@ func main() {
 	// s2 = append(s2, 5)
 	// s2 = append(s2, 6)
 	// fmt.Println(s1, s2)
+	// s1 := []int{1, 2, 3}
+	// s2 := s1[1:2]
+	// fmt.Println(s1, s2)
+	// s3 := append(s2, 10)
+	// fmt.Println(s1, s2, s3)
+	listing1()
+	listing2()
+	listing3()
 }
