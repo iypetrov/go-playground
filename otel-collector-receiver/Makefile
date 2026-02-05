@@ -1,9 +1,16 @@
-build:
-	@air -c .air.toml
+run-receiver:
+	@docker run -d --name jaeger \
+  		-e COLLECTOR_OTLP_ENABLED=true \
+  		-p 16686:16686 \
+  		-p 14317:4317 \
+  		-p 14318:4318 \
+  		jaegertracing/all-in-one:1.41
 
-test:
-	go test -v
+init-collctor:
+	@ocb --config builder-config.yaml
 
-fmt:
-	@go fmt ./...
-	@goimports -l -w .
+run-collector:
+	@./otelcol-dev/otelcol-dev --config config.yaml
+
+invoke:
+	@telemetrygen traces --otlp-insecure --traces 1
