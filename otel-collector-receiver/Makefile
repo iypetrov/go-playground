@@ -10,7 +10,7 @@ init-collctor:
 	@ocb --config builder-config.yaml
 
 run-collector:
-	@./otelcol-dev/otelcol-dev --config config.yaml
+	@go run ./otelcol-dev --config config.yaml
 
 invoke:
 	@telemetrygen traces --otlp-insecure --traces 1

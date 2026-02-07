@@ -1,4 +1,4 @@
-package main
+package tracer
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type traceReceiver struct {
+type tracerReceiver struct {
 	host   component.Host
 	cancel context.CancelFunc
 
@@ -18,7 +18,10 @@ type traceReceiver struct {
 	config       *Config
 }
 
-func (tr *traceReceiver) Start(ctx context.Context, host component.Host) error {
+func (tr *tracerReceiver) Start(
+	ctx context.Context,
+	host component.Host,
+) error {
 	tr.host = host
 	ctx = context.Background()
 	ctx, tr.cancel = context.WithCancel(ctx)
@@ -44,7 +47,7 @@ func (tr *traceReceiver) Start(ctx context.Context, host component.Host) error {
 	return nil
 }
 
-func (tr *traceReceiver) Shutdown(ctx context.Context) error {
+func (tr *tracerReceiver) Shutdown(ctx context.Context) error {
 	if tr.cancel != nil {
 		tr.cancel()
 	}

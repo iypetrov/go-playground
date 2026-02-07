@@ -3,6 +3,9 @@ receivers:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+  tracer:
+    interval: 1m
+    number_of_traces: 1
 
 exporters:
   debug:
@@ -17,7 +20,7 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers: [otlp]
+      receivers: [otlp, tracer]
       exporters: [otlp/jaeger, debug]
   telemetry:
     logs:

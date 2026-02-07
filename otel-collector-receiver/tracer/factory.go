@@ -1,4 +1,4 @@
-package main
+package tracer
 
 import (
 	"context"
@@ -9,10 +9,10 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-// NewFactory creates a factory for otel-collector-receiver receiver.
+// NewFactory creates a factory for tracer receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		component.MustNewType("otel-collector-receiver"),
+		component.MustNewType("tracer"),
 		func() component.Config {
 			return &Config{
 				Interval: (1 * time.Minute).String(),
@@ -25,15 +25,11 @@ func NewFactory() receiver.Factory {
 				baseCfg component.Config,
 				consumer consumer.Traces,
 			) (receiver.Traces, error) {
-				logger := params.Logger
-				traceCfg := baseCfg.(*Config)
-				traceRcvr := &traceReceiver{
-					logger:       logger,
+				return &tracerReceiver{
+					logger:       params.Logger,
 					nextConsumer: consumer,
-					config:       traceCfg,
-				}
-
-				return traceRcvr, nil
+					config:       baseCfg.(*Config),
+				}, nil
 			},
 			component.StabilityLevelAlpha,
 		),
