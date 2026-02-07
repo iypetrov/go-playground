@@ -9,29 +9,33 @@ import (
 	"go.opentelemetry.io/collector/receiver"
 )
 
-var (
-	typeStr = component.MustNewType("otel-collector-receiver")
-)
-
-const (
-	defaultInterval = 1 * time.Minute
-)
-
-func createDefaultConfig() component.Config {
-	return &Config{
-		Interval: defaultInterval.String(),
-	}
-}
-
-func createTracesReceiver(_ context.Context, params receiver.Settings, baseCfg component.Config, consumer consumer.Traces) (receiver.Traces, error) {
-	return nil, nil
-}
-
-// NewFactory creates a factory for tailtracer receiver.
+// NewFactory creates a factory for otel-collector-receiver receiver.
 func NewFactory() receiver.Factory {
 	return receiver.NewFactory(
-		typeStr,
-		createDefaultConfig,
-		receiver.WithTraces(createTracesReceiver, component.StabilityLevelAlpha),
+		component.MustNewType("otel-collector-receiver"),
+		func() component.Config {
+			return &Config{
+				Interval: (1 * time.Minute).String(),
+			}
+		},
+		receiver.WithTraces(
+			func(
+				_ context.Context,
+				params receiver.Settings,
+				baseCfg component.Config,
+				consumer consumer.Traces,
+			) (receiver.Traces, error) {
+				logger := params.Logger
+				traceCfg := baseCfg.(*Config)
+				traceRcvr := &traceReceiver{
+					logger:       logger,
+					nextConsumer: consumer,
+					config:       traceCfg,
+				}
+
+				return traceRcvr, nil
+			},
+			component.StabilityLevelAlpha,
+		),
 	)
 }
