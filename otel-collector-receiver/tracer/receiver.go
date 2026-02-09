@@ -38,6 +38,10 @@ func (tr *tracerReceiver) Start(
 			select {
 			case <-ticker.C:
 				tr.logger.Info("I should start processing traces now!")
+				tr.nextConsumer.ConsumeTraces(
+					ctx,
+					generateTraces(tr.config.NumberOfTraces),
+				)
 			case <-ctx.Done():
 				return
 			}

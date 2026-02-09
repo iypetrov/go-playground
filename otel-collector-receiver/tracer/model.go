@@ -1,12 +1,10 @@
 package tracer
 
 import (
+	crand "crypto/rand"
 	"encoding/binary"
 	"math/rand"
 	"time"
-
-	crand "crypto/rand"
-	"math/rand"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/collector/pdata/pcommon"
@@ -81,19 +79,41 @@ func generateBackendSystem() BackendSystem {
 		newBackend.Endpoint = "api/v2.5/deposit"
 	case 3:
 		newBackend.Endpoint = "api/v2.5/withdrawn"
-
 	}
 
 	return newBackend
 }
 
 func getRandomNumber(min int, max int) int {
-	rand.Seed(time.Now().UnixNano())
-	i := (rand.Intn(max-min+1) + min)
-	return i
+	return rand.Intn(max-min+1) + min
 }
 
 // OTel part
+func generateTraces(numberOfTraces int) ptrace.Traces {
+	traces := ptrace.NewTraces()
+
+	for i := 0; i <= numberOfTraces; i++ {
+		newAtm := generateAtm()
+		newBackendSystem := generateBackendSystem()
+
+		resourceSpan := traces.ResourceSpans().AppendEmpty()
+		atmResource := resourceSpan.Resource()
+		fillResourceWithAtm(&atmResource, newAtm)
+
+		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+
+		resourceSpan = traces.ResourceSpans().AppendEmpty()
+		backendResource := resourceSpan.Resource()
+		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
+
+		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
+
+		appendTraceSpans(&newBackendSystem, &backendInstScope, &atmInstScope)
+	}
+
+	return traces
+}
+
 // Notice that we didn’t add an attribute named “atm.name” or “backendsystem.name”
 // to the pcommon.Resource representing the Atm and BackendSystem entity names.
 // This is because most (not to say all) distributed tracing backend systems compatible
@@ -106,6 +126,8 @@ func fillResourceWithAtm(resource *pcommon.Resource, atm Atm) {
 	atmAttrs.PutStr("atm.stateid", atm.StateID)
 	atmAttrs.PutStr("atm.ispnetwork", atm.ISPNetwork)
 	atmAttrs.PutStr("atm.serialnumber", atm.SerialNumber)
+	atmAttrs.PutStr(semconv.AttributeServiceName, atm.Name)
+	atmAttrs.PutStr(semconv.AttributeServiceVersion, atm.Version)
 }
 
 func fillResourceWithBackendSystem(resource *pcommon.Resource, backend BackendSystem) {
@@ -135,29 +157,9 @@ func fillResourceWithBackendSystem(resource *pcommon.Resource, backend BackendSy
 
 	backendAttrs.PutStr(semconv.AttributeOSType, osType)
 	backendAttrs.PutStr(semconv.AttributeOSVersion, backend.OSVersion)
-}
 
-func generateTraces(numberOfTraces int) ptrace.Traces {
-	traces := ptrace.NewTraces()
-
-	for i := 0; i <= numberOfTraces; i++ {
-		newAtm := generateAtm()
-		newBackendSystem := generateBackendSystem()
-
-		resourceSpan := traces.ResourceSpans().AppendEmpty()
-		atmResource := resourceSpan.Resource()
-		fillResourceWithAtm(&atmResource, newAtm)
-
-		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
-
-		resourceSpan = traces.ResourceSpans().AppendEmpty()
-		backendResource := resourceSpan.Resource()
-		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
-
-		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
-	}
-
-	return traces
+	backendAttrs.PutStr(semconv.AttributeServiceName, backend.ProcessName)
+	backendAttrs.PutStr(semconv.AttributeServiceVersion, backend.Version)
 }
 
 func appendAtmSystemInstrScopeSpans(resourceSpans *ptrace.ResourceSpans) ptrace.ScopeSpans {
@@ -181,4 +183,21 @@ func NewSpanID() pcommon.SpanID {
 	spanID := pcommon.SpanID(sid)
 
 	return spanID
+}
+
+func appendTraceSpans(backend *BackendSystem, backendScopeSpans *ptrace.ScopeSpans, atmScopeSpans *ptrace.ScopeSpans) {
+	traceId := NewTraceID()
+	backendSpanId := NewSpanID()
+
+	backendDuration, _ := time.ParseDuration("1s")
+	backendSpanStartTime := time.Now()
+	backendSpanFinishTime := backendSpanStartTime.Add(backendDuration)
+
+	backendSpan := backendScopeSpans.Spans().AppendEmpty()
+	backendSpan.SetTraceID(traceId)
+	backendSpan.SetSpanID(backendSpanId)
+	backendSpan.SetName(backend.Endpoint)
+	backendSpan.SetKind(ptrace.SpanKindServer)
+	backendSpan.SetStartTimestamp(pcommon.NewTimestampFromTime(backendSpanStartTime))
+	backendSpan.SetEndTimestamp(pcommon.NewTimestampFromTime(backendSpanFinishTime))
 }
