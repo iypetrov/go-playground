@@ -4,6 +4,7 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -92,20 +93,18 @@ func getRandomNumber(min int, max int) int {
 func generateTraces(numberOfTraces int) ptrace.Traces {
 	traces := ptrace.NewTraces()
 
-	for i := 0; i <= numberOfTraces; i++ {
+	for range numberOfTraces {
 		newAtm := generateAtm()
 		newBackendSystem := generateBackendSystem()
 
 		resourceSpan := traces.ResourceSpans().AppendEmpty()
 		atmResource := resourceSpan.Resource()
 		fillResourceWithAtm(&atmResource, newAtm)
-
 		atmInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 
 		resourceSpan = traces.ResourceSpans().AppendEmpty()
 		backendResource := resourceSpan.Resource()
 		fillResourceWithBackendSystem(&backendResource, newBackendSystem)
-
 		backendInstScope := appendAtmSystemInstrScopeSpans(&resourceSpan)
 
 		appendTraceSpans(&newBackendSystem, &backendInstScope, &atmInstScope)
@@ -187,17 +186,44 @@ func NewSpanID() pcommon.SpanID {
 
 func appendTraceSpans(backend *BackendSystem, backendScopeSpans *ptrace.ScopeSpans, atmScopeSpans *ptrace.ScopeSpans) {
 	traceId := NewTraceID()
+
+	var atmOperationName string
+
+	switch {
+	case strings.Contains(backend.Endpoint, "balance"):
+		atmOperationName = "Check Balance"
+	case strings.Contains(backend.Endpoint, "deposit"):
+		atmOperationName = "Make Deposit"
+	case strings.Contains(backend.Endpoint, "withdraw"):
+		atmOperationName = "Fast Cash"
+	}
+
+	atmSpanId := NewSpanID()
+	atmSpanStartTime := time.Now()
+	atmDuration, _ := time.ParseDuration("4s")
+	atmSpanFinishTime := atmSpanStartTime.Add(atmDuration)
+
+	atmSpan := atmScopeSpans.Spans().AppendEmpty()
+	atmSpan.SetTraceID(traceId)
+	atmSpan.SetSpanID(atmSpanId)
+	atmSpan.SetName(atmOperationName)
+	atmSpan.SetKind(ptrace.SpanKindClient)
+	atmSpan.Status().SetCode(ptrace.StatusCodeOk)
+	atmSpan.SetStartTimestamp(pcommon.NewTimestampFromTime(atmSpanStartTime))
+	atmSpan.SetEndTimestamp(pcommon.NewTimestampFromTime(atmSpanFinishTime))
+
 	backendSpanId := NewSpanID()
 
-	backendDuration, _ := time.ParseDuration("1s")
-	backendSpanStartTime := time.Now()
-	backendSpanFinishTime := backendSpanStartTime.Add(backendDuration)
+	backendDuration, _ := time.ParseDuration("2s")
+	backendSpanStartTime := atmSpanStartTime.Add(backendDuration)
 
 	backendSpan := backendScopeSpans.Spans().AppendEmpty()
-	backendSpan.SetTraceID(traceId)
+	backendSpan.SetTraceID(atmSpan.TraceID())
 	backendSpan.SetSpanID(backendSpanId)
+	backendSpan.SetParentSpanID(atmSpan.SpanID())
 	backendSpan.SetName(backend.Endpoint)
 	backendSpan.SetKind(ptrace.SpanKindServer)
+	backendSpan.Status().SetCode(ptrace.StatusCodeOk)
 	backendSpan.SetStartTimestamp(pcommon.NewTimestampFromTime(backendSpanStartTime))
-	backendSpan.SetEndTimestamp(pcommon.NewTimestampFromTime(backendSpanFinishTime))
+	backendSpan.SetEndTimestamp(atmSpan.EndTimestamp())
 }
