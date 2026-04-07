@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/iypetrov/user-lib/apihelpers"
 	"github.com/iypetrov/user-lib/apis"
 )
 
@@ -11,6 +12,6 @@ func main() {
 		apis.NewUser(1, "John Smith", "john.smith@gmail.com"),
 	}
 	for _, u := range users {
-		fmt.Println(u.ToYaml())
+		fmt.Println(apihelpers.ToYaml(u))
 	}
 }

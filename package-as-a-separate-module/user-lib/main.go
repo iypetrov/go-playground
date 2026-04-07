@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/iypetrov/user-lib/apihelpers"
 	"github.com/iypetrov/user-lib/apis"
 )
 
@@ -23,7 +24,7 @@ func usersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
 	for _, u := range users {
-		fmt.Println(u.ToYaml())
+		fmt.Println(apihelpers.ToYaml(u))
 	}
 }
 
