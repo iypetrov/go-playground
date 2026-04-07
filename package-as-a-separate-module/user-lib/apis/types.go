@@ -5,9 +5,9 @@ import (
 )
 
 type User struct {
-	ID       int64
-	Username string
-	Email    string
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 func NewUser(id int64, username, email string) User {
