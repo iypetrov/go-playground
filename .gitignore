@@ -3,3 +3,6 @@
 **/.env
 /crawler-cli/thumbnails/
 /grpc-learning/gen/
+
+/fluent-bit-output-plugin/plugin.h
+/fluent-bit-output-plugin/plugin.so
