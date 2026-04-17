@@ -39,6 +39,10 @@ spec:
           spec:
             description: spec defines the desired state of User
             properties:
+              bar:
+                description: bar is an example field of User. Edit user_types.go to
+                  remove/update
+                type: string
               foo:
                 description: foo is an example field of User. Edit user_types.go to
                   remove/update

@@ -33,6 +33,10 @@ type UserSpec struct {
 	// foo is an example field of User. Edit user_types.go to remove/update
 	// +optional
 	Foo *string `json:"foo,omitempty"`
+
+	// bar is an example field of User. Edit user_types.go to remove/update
+	// +optional
+	Bar *string `json:"bar,omitempty"`
 }
 
 // UserStatus defines the observed state of User.
