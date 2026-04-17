@@ -47,9 +47,19 @@ type UserReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.23.3/pkg/reconcile
 func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log := logf.FromContext(ctx)
+
+	// check if the CR for the HelloApp is applied on the cluster
+	// if not we return nil to stop the reconciliation
+	user := &webappv1.User{}
+	err := r.Get(ctx, req.NamespacedName, user)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// TODO(user): your logic here
+	log.Info("boza")
+	log.Info(*user.Spec.Foo)
 
 	return ctrl.Result{}, nil
 }

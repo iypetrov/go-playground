@@ -1,0 +1,7 @@
+---
+apiVersion: webapp.my.domain/v1
+kind: User 
+metadata:
+  name: ilia
+spec:
+  foo: "test1"
