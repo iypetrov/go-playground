@@ -44,10 +44,21 @@ func main() {
 	loggerHandler := slog.NewTextHandler(os.Stderr, loggerOpts)
 	logger := logr.FromSlogHandler(loggerHandler)
 
+	// Metrics server config
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	srv := &http.Server{
+		Addr:    ":2021",
+		Handler: mux,
+	}
+	globalMetricsSetup, err := NewGlobalMetricsSetup()
+
 	// Create blocking OTLP gRPC exporter
 	exporterOpts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(endpoint),
 		otlploggrpc.WithInsecure(),
+		// Add metrics instrumentation to gRPC dial options
+		otlploggrpc.WithDialOption(globalMetricsSetup.GRPCStatsHandler()),
 	}
 	exporter, err := otlploggrpc.New(ctx, exporterOpts...)
 	if err != nil {
@@ -111,12 +122,6 @@ func main() {
 	})
 
 	// Metric server
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	srv := &http.Server{
-		Addr:    ":2021",
-		Handler: mux,
-	}
 	wg.Go(func() {
 		go func() {
 			<-ctx.Done()
@@ -126,6 +131,7 @@ func main() {
 				5*time.Second,
 			)
 			defer cancel()
+			defer globalMetricsSetup.Shutdown(shutdownCtx)
 
 			if err := srv.Shutdown(shutdownCtx); err != nil {
 				logger.Error(err, "failed shutting down metrics server")
