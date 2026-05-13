@@ -8,6 +8,9 @@ run:
 teardown:
 	@docker rm -f otel-col-test
 
+metrics-plugin:
+	@curl http://localhost:2021/metrics
+
 test:
 	go test -v
 

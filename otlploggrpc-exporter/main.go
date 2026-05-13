@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 	otlplog "go.opentelemetry.io/otel/log"
@@ -101,9 +103,37 @@ func main() {
 				loggerProvider.Logger(pluginName, scopeOptions...).
 					Emit(ctx, record)
 				logger.Info("log record emitted", "body", record.Body())
+				OutputClientLogs.WithLabelValues(hostname).Inc()
 			case <-ctx.Done():
 				return
 			}
+		}
+	})
+
+	// Metric server
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	srv := &http.Server{
+		Addr:    ":2021",
+		Handler: mux,
+	}
+	wg.Go(func() {
+		go func() {
+			<-ctx.Done()
+
+			shutdownCtx, cancel := context.WithTimeout(
+				context.Background(),
+				5*time.Second,
+			)
+			defer cancel()
+
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				logger.Error(err, "failed shutting down metrics server")
+			}
+		}()
+
+		if err := srv.ListenAndServe(); err != nil {
+			logger.Error(err, "fluent-bit-output-plugin")
 		}
 	})
 
