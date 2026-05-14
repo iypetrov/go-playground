@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/otlptranslator"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
@@ -16,29 +15,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-func AllCollectors() []prometheus.Collector {
-	return []prometheus.Collector{
-		OutputClientLogs,
-	}
-}
-
-var (
-	namespace = "fluentbit_example"
-
-	// OutputClientLogs is a prometheus metric which keeps logs to the Output Client
-	OutputClientLogs = promauto.With(prometheus.DefaultRegisterer).NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
-		Name:      "output_client_logs_total",
-		Help:      "Total number of the forwarded logs to the output client",
-	}, []string{"host"})
-)
-
 type GlobalMetricsSetup struct {
 	provider     *sdkmetric.MeterProvider
 	shutdownOnce sync.Once
 }
 
-func NewGlobalMetricsSetup() (*GlobalMetricsSetup, error) {
+func NewGlobalMetricsSetup(reg prometheus.Registerer) (*GlobalMetricsSetup, error) {
 	// Enable OpenTelemetry Log SDK observability (self-instrumentation) metrics.
 	// This is an experimental feature that emits metrics like otel.sdk.log.created,
 	// otel.sdk.exporter.* etc. The environment variable must be set before SDK initialization.
@@ -49,7 +31,7 @@ func NewGlobalMetricsSetup() (*GlobalMetricsSetup, error) {
 	// This ensures OTLP metrics are exposed on the same /metrics endpoint
 	// as the existing Prometheus metrics (port 2021)
 	promExporter, err := otelexporterprom.New(
-		otelexporterprom.WithRegisterer(prometheus.DefaultRegisterer),
+		otelexporterprom.WithRegisterer(reg),
 		otelexporterprom.WithNamespace("output_plugin"),
 		otelexporterprom.WithTranslationStrategy(otlptranslator.UnderscoreEscapingWithSuffixes),
 	)

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/iypetrov/otlploggrpc-exporter/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
@@ -45,13 +46,15 @@ func main() {
 	logger := logr.FromSlogHandler(loggerHandler)
 
 	// Metrics server config
+	registry := metrics.NewRegistry()
+	m := metrics.NewPluginMetrics(registry)
+	globalMetricsSetup, err := NewGlobalMetricsSetup(registry)
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	srv := &http.Server{
 		Addr:    ":2021",
 		Handler: mux,
 	}
-	globalMetricsSetup, err := NewGlobalMetricsSetup()
 
 	// Create blocking OTLP gRPC exporter
 	exporterOpts := []otlploggrpc.Option{
@@ -114,7 +117,7 @@ func main() {
 				loggerProvider.Logger(pluginName, scopeOptions...).
 					Emit(ctx, record)
 				logger.Info("log record emitted", "body", record.Body())
-				OutputClientLogs.WithLabelValues(hostname).Inc()
+				m.OutputClientLogs.WithLabelValues(hostname).Inc()
 			case <-ctx.Done():
 				return
 			}
