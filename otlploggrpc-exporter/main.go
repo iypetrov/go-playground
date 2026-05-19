@@ -114,8 +114,7 @@ func main() {
 					"name": "John",
 				}
 				record := buildRecord(msg)
-				loggerProvider.Logger(pluginName, scopeOptions...).
-					Emit(ctx, record)
+				loggerProvider.Logger(pluginName, scopeOptions...).Emit(ctx, record)
 				logger.Info("log record emitted", "body", record.Body())
 				m.OutputClientLogs.WithLabelValues(hostname).Inc()
 			case <-ctx.Done():
