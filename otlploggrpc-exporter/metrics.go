@@ -6,22 +6,27 @@ import (
 	"os"
 	"sync"
 
-	"github.com/prometheus/client_golang/prometheus"
+	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/otlptranslator"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
-	otelexporterprom "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/exporters/prometheus"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"google.golang.org/grpc"
 )
 
-type GlobalMetricsSetup struct {
+// MetricsSetup encapsulates the OpenTelemetry meter provider and manages its lifecycle.
+// It ensures idempotent shutdown and provides helpers for gRPC instrumentation.
+// This type is thread-safe and designed to be used as a singleton.
+type MetricsSetup struct {
 	provider     *sdkmetric.MeterProvider
 	shutdownOnce sync.Once
 }
 
-func NewGlobalMetricsSetup(reg prometheus.Registerer) (*GlobalMetricsSetup, error) {
-	// Enable OpenTelemetry Log SDK observability (self-instrumentation) metrics.
+// NewMetricsSetup creates and configures the metrics infrastructure.
+// This function is called exactly once by the singleton pattern.
+func NewMetricsSetup(reg *promclient.Registry) (*MetricsSetup, error) {
+	// Enable OpenTelemetry SDK observability (self-instrumentation) metrics.
 	// This is an experimental feature that emits metrics like otel.sdk.log.created,
 	// otel.sdk.exporter.* etc. The environment variable must be set before SDK initialization.
 	// See: https://pkg.go.dev/go.opentelemetry.io/otel/sdk/log/internal/x
@@ -30,10 +35,10 @@ func NewGlobalMetricsSetup(reg prometheus.Registerer) (*GlobalMetricsSetup, erro
 	// Create Prometheus exporter using the default registry
 	// This ensures OTLP metrics are exposed on the same /metrics endpoint
 	// as the existing Prometheus metrics (port 2021)
-	promExporter, err := otelexporterprom.New(
-		otelexporterprom.WithRegisterer(reg),
-		otelexporterprom.WithNamespace("output_plugin"),
-		otelexporterprom.WithTranslationStrategy(otlptranslator.UnderscoreEscapingWithSuffixes),
+	promExporter, err := prometheus.New(
+		prometheus.WithRegisterer(reg),
+		prometheus.WithNamespace("output_plugin"),
+		prometheus.WithTranslationStrategy(otlptranslator.UnderscoreEscapingWithSuffixes),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize prometheus exporter for OTLP metrics: %w", err)
@@ -46,20 +51,23 @@ func NewGlobalMetricsSetup(reg prometheus.Registerer) (*GlobalMetricsSetup, erro
 	// Set as global meter provider so instrumentation libraries can discover it
 	otel.SetMeterProvider(meterProvider)
 
-	return &GlobalMetricsSetup{
+	return &MetricsSetup{
 		provider: meterProvider,
 	}, nil
 }
 
 // Provider returns the configured OpenTelemetry meter provider.
 // The provider is used for creating meters and recording metrics.
-func (m *GlobalMetricsSetup) Provider() *sdkmetric.MeterProvider {
+func (m *MetricsSetup) Provider() *sdkmetric.MeterProvider {
 	return m.provider
 }
 
 // GRPCStatsHandler returns a gRPC dial option that enables automatic
 // metrics collection for gRPC client calls.
-func (m *GlobalMetricsSetup) GRPCStatsHandler() grpc.DialOption {
+//
+// The handler collects standard gRPC metrics like request count, duration,
+// and message sizes using the OpenTelemetry meter provider.
+func (m *MetricsSetup) GRPCStatsHandler() grpc.DialOption {
 	return grpc.WithStatsHandler(otelgrpc.NewClientHandler(
 		otelgrpc.WithMeterProvider(m.provider),
 	))
@@ -74,7 +82,7 @@ func (m *GlobalMetricsSetup) GRPCStatsHandler() grpc.DialOption {
 // If the context expires before shutdown completes, the context error is returned.
 //
 // After shutdown, the meter provider should not be used for new metric operations.
-func (m *GlobalMetricsSetup) Shutdown(ctx context.Context) error {
+func (m *MetricsSetup) Shutdown(ctx context.Context) error {
 	var shutdownErr error
 
 	m.shutdownOnce.Do(func() {

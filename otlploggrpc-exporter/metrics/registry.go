@@ -1,28 +1,19 @@
 package metrics
 
 import (
-	"sync"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
-var (
-	reg     *prometheus.Registry
-	regOnce sync.Once
-)
-
+// NewRegistry creates a new prometheus registry with Go runtime and process collectors pre-registered.
 func NewRegistry() *prometheus.Registry {
-	regOnce.Do(func() {
-		promreg := prometheus.NewRegistry()
-		promreg.MustRegister(
-			collectors.NewGoCollector(),
-			collectors.NewProcessCollector(
-				collectors.ProcessCollectorOpts{},
-			),
-		)
-		reg = promreg
-	})
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(
+			collectors.ProcessCollectorOpts{},
+		),
+	)
 
 	return reg
 }

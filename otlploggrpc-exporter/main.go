@@ -48,7 +48,7 @@ func main() {
 	// Metrics server config
 	registry := metrics.NewRegistry()
 	m := metrics.NewPluginMetrics(registry)
-	globalMetricsSetup, err := NewGlobalMetricsSetup(registry)
+	metricsSetup, err := NewMetricsSetup(registry)
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	srv := &http.Server{
@@ -56,12 +56,12 @@ func main() {
 		Handler: mux,
 	}
 
-	// Create blocking OTLP gRPC exporter
+	// Create OTLP gRPC exporter
 	exporterOpts := []otlploggrpc.Option{
 		otlploggrpc.WithEndpoint(endpoint),
 		otlploggrpc.WithInsecure(),
 		// Add metrics instrumentation to gRPC dial options
-		otlploggrpc.WithDialOption(globalMetricsSetup.GRPCStatsHandler()),
+		otlploggrpc.WithDialOption(metricsSetup.GRPCStatsHandler()),
 	}
 	exporter, err := otlploggrpc.New(ctx, exporterOpts...)
 	if err != nil {
@@ -133,7 +133,7 @@ func main() {
 				5*time.Second,
 			)
 			defer cancel()
-			defer globalMetricsSetup.Shutdown(shutdownCtx)
+			defer metricsSetup.Shutdown(shutdownCtx)
 
 			if err := srv.Shutdown(shutdownCtx); err != nil {
 				logger.Error(err, "failed shutting down metrics server")
