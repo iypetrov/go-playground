@@ -38,17 +38,17 @@ func isWorkerB() bool {
 }
 
 func main() {
-	stop := make(chan struct{})
+	stopA := make(chan struct{})
 
-	go workerA(stop)
+	go workerA(stopA)
 
 	for {
 		if isWorkerB() {
 			fmt.Println("Switching to Worker B")
 
-			close(stop)
-			stop = make(chan struct{})
-			go workerB(stop)
+			close(stopA)
+			stopB := make(chan struct{})
+			go workerB(stopB)
 			break
 		}
 
