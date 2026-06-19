@@ -1,0 +1,26 @@
+# Sample collector config: tail every *.log under ./input/ and print
+# each record to stdout. The sdnotify extension is loaded so the collector
+# notifies systemd when running under it (no-op otherwise).
+
+extensions:
+  sdnotify:
+    # Set to true to refuse to start when not supervised by systemd.
+    fail_if_not_supervised: false
+
+receivers:
+  file_log:
+    include: [ ./input/*.log ]
+    start_at: beginning
+    include_file_name: true
+    include_file_path: true
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  extensions: [sdnotify]
+  pipelines:
+    logs:
+      receivers: [file_log]
+      exporters: [debug]

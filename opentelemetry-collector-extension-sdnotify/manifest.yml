@@ -1,0 +1,23 @@
+dist:
+  name: otelcol-sdnotify
+  description: Custom OpenTelemetry Collector distribution with the sdnotify extension
+  output_path: ./_build
+  version: 0.0.1
+
+extensions:
+  # Local custom extension. The v0.0.0 placeholder is paired with the `replaces`
+  # block below so OCB resolves it to the in-tree source.
+  - gomod: github.com/iypetrov/opentelemetry-collector-extension-sdnotify/extension/sdnotify v0.0.0
+
+receivers:
+  # Tails files in a directory and emits each line as a log record.
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver v0.154.0
+
+exporters:
+  # Prints telemetry to the collector's stdout.
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.154.0
+
+# `replaces` paths are resolved relative to the GENERATED _build/go.mod,
+# so we go up one directory to reach the extension source.
+replaces:
+  - github.com/iypetrov/opentelemetry-collector-extension-sdnotify/extension/sdnotify => ../extension/sdnotify
