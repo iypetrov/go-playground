@@ -1,0 +1,15 @@
+[Unit]
+Description=Example systemd-aware Go daemon
+Documentation=https://github.com/iypetrov/go-playground/tree/master/daemon
+
+[Service]
+# notify = systemd waits for our READY=1 before considering startup done.
+Type=notify
+ExecStart=/usr/local/bin/myservice
+
+# Watchdog: systemd kills us with SIGABRT if WATCHDOG=1 isn't received in time.
+WatchdogSec=10s
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
