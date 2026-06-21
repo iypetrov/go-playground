@@ -6,8 +6,15 @@ import (
 
 	"github.com/coreos/go-systemd/v22/daemon"
 	"go.opentelemetry.io/collector/component"
+	"go.opentelemetry.io/collector/extension"
 	"go.uber.org/zap"
 )
+
+var _ Extension = (*sdnotify)(nil)
+
+type Extension interface {
+	extension.Extension
+}
 
 // sdnotify implements extension.Extension. On Start it sends READY=1 to
 // systemd; on Shutdown it sends STOPPING=1. Both are best-effort: if the

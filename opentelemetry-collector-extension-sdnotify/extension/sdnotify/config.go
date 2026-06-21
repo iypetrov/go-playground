@@ -1,5 +1,9 @@
 package sdnotify
 
+import "go.opentelemetry.io/collector/confmap/xconfmap"
+
+var _ xconfmap.Validator = (*Config)(nil)
+
 // Config controls how the sdnotify extension talks to systemd.
 //
 // The extension uses go-systemd's daemon.SdNotify, which reads the
@@ -13,4 +17,6 @@ type Config struct {
 }
 
 // Validate is called by the collector before Start. Nothing to check yet.
-func (c *Config) Validate() error { return nil }
+func (c *Config) Validate() error {
+	return nil
+}
