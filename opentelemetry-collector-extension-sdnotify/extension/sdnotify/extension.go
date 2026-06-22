@@ -110,7 +110,7 @@ func (s *sdnotify) Start(_ context.Context, host component.Host) error {
 // Ready is called by the collector once all pipelines have started and the
 // service is ready to receive data. This is when READY=1 belongs.
 func (s *sdnotify) Ready() error {
-	sent, err := daemon.SdNotify(s.cfg.UnsetEnvironment, daemon.SdNotifyReady)
+	sent, err := daemon.SdNotify(false, daemon.SdNotifyReady)
 	if err != nil {
 		return fmt.Errorf("sdnotify READY=1: %w", err)
 	}
@@ -145,7 +145,7 @@ func (s *sdnotify) Shutdown(_ context.Context) error {
 	s.stopWatchdog()
 	s.stopDeepHealthcheck() // idempotent if NotReady already ran
 
-	sent, err := daemon.SdNotify(s.cfg.UnsetEnvironment, daemon.SdNotifyStopping)
+	sent, err := daemon.SdNotify(false, daemon.SdNotifyStopping)
 	if err != nil {
 		// Don't block shutdown on a notify failure -- just log it.
 		s.logger.Warn("sdnotify STOPPING=1 failed", zap.Error(err))

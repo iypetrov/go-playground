@@ -39,7 +39,6 @@ doesn't ask for a watchdog, the pinger stays off.
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `fail_if_not_supervised` | bool | `false` | Fail `Start` when `NOTIFY_SOCKET` is unset. |
-| `unset_environment` | bool | `false` | Pass `unsetEnv=true` to `daemon.SdNotify` so child processes don't inherit `NOTIFY_SOCKET`. |
 | `deep_healthcheck` | bool | `false` | Subscribe to `healthcheckv2`'s gRPC `Health.Watch` (overall collector health, i.e. the aggregate of every component) and emit `STATUS=...`. |
 | `healthcheckv2` | component.ID | `healthcheckv2` | ID of the sibling healthcheckv2 extension. Used both for `Dependencies()` and to look up the gRPC endpoint. Override only if your sibling extension uses a non-default instance name. |
 | `healthcheckv2_grpc_endpoint` | string | `""` | Optional explicit override. When empty, the endpoint is read from the sibling extension's config at runtime. |

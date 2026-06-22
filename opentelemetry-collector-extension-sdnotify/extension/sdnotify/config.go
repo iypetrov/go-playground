@@ -23,11 +23,6 @@ type Config struct {
 	// not running under systemd (NOTIFY_SOCKET unset). Default: false.
 	FailIfNotSupervised bool `mapstructure:"fail_if_not_supervised"`
 
-	// UnsetEnvironment passes unsetEnv=true to daemon.SdNotify so NOTIFY_SOCKET
-	// is not inherited by child processes. Default false (matches current
-	// behaviour and go-systemd's own default).
-	UnsetEnvironment bool `mapstructure:"unset_environment"`
-
 	// DeepHealthcheck opts in to the per-component health aggregation mode.
 	// When true the extension subscribes to the configured healthcheckv2
 	// extension's grpc.health.v1.Health/Watch stream (service="") and

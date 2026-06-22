@@ -34,9 +34,9 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "unset_environment doesn't require healthcheckv2",
+			name: "fail_if_not_supervised alone is valid",
 			cfg: Config{
-				UnsetEnvironment: true,
+				FailIfNotSupervised: true,
 			},
 			wantErr: false,
 		},
