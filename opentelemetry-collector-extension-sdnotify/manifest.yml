@@ -11,6 +11,10 @@ extensions:
   # Aggregated component health, queried by sdnotify in deep-healthcheck mode
   # over its grpc.health.v1.Health/Watch stream.
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckv2extension v0.154.0
+  # Bearer-token authenticator. Reads a token from a file (or inline config)
+  # and exposes it for other components (e.g. OTLP exporters) to attach as an
+  # `Authorization: Bearer ...` header.
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/bearertokenauthextension v0.154.0
 
 receivers:
   # Tails files in a directory and emits each line as a log record.

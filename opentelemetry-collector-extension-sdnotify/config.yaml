@@ -14,6 +14,13 @@ extensions:
     http:
       endpoint: localhost:13133
 
+  bearertokenauth:
+    # Path to a file whose contents are used as the bearer token. The default
+    # scheme is "Bearer", so requests get `Authorization: Bearer <contents>`.
+    # Wire this extension into a receiver's or exporter's `auth.authenticator:`
+    # field to actually use it.
+    filename: /etc/otelcol/bearer.token
+
   sdnotify:
     # Set to true to refuse to start when not supervised by systemd.
     fail_if_not_supervised: false
@@ -40,7 +47,7 @@ exporters:
     verbosity: detailed
 
 service:
-  extensions: [healthcheckv2, sdnotify]
+  extensions: [healthcheckv2, bearertokenauth, sdnotify]
   pipelines:
     logs:
       receivers: [file_log]

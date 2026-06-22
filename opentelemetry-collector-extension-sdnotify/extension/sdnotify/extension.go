@@ -16,22 +16,26 @@ import (
 	"go.uber.org/zap"
 )
 
-// Compile-time interface assertions. Dependent is implemented but isn't on
-// the Extension alias because it only applies when DeepHealthcheck is on --
-// the service detects it via type assertion anyway.
-var (
-	_ Extension                       = (*sdnotify)(nil)
-	_ extensioncapabilities.Dependent = (*sdnotify)(nil)
-)
-
+// Extension is the union of capability interfaces sdnotify implements
+// unconditionally. Dependent is implemented separately because it's only
+// meaningful when DeepHealthcheck is on -- the service detects it via type
+// assertion either way.
 type Extension interface {
 	extension.Extension
 	extensioncapabilities.PipelineWatcher
 	componentstatus.Watcher
 }
 
-// sdnotify implements extension.Extension plus PipelineWatcher,
-// componentstatus.Watcher, and (conditionally) Dependent.
+var (
+	_ component.Component                   = (*sdnotify)(nil)
+	_ extension.Extension                   = (*sdnotify)(nil)
+	_ extensioncapabilities.PipelineWatcher = (*sdnotify)(nil)
+	_ extensioncapabilities.Dependent       = (*sdnotify)(nil)
+	_ componentstatus.Watcher               = (*sdnotify)(nil)
+	_ Extension                             = (*sdnotify)(nil)
+)
+
+// sdnotify drives systemd's sd_notify protocol from the collector lifecycle.
 //
 //   - READY=1     is sent from Ready() once all pipelines are up.
 //   - STOPPING=1  is sent from Shutdown().
