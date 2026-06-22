@@ -160,12 +160,13 @@ func TestLifecycle_FailIfNotSupervised(t *testing.T) {
 
 func TestLifecycle_WatchdogPings(t *testing.T) {
 	rec := startNotifyRecorder(t)
-	// Tell go-systemd's SdWatchdogEnabled the watchdog is active. The pinger
-	// fires every d/2 so we'll see multiple WATCHDOG=1 within the test budget.
+	// With WATCHDOG_USEC and matching WATCHDOG_PID set, sdnotify must
+	// auto-enable the pinger -- no Config knob required. The pinger fires
+	// every d/2, so we'll see multiple WATCHDOG=1 within the test budget.
 	t.Setenv("WATCHDOG_USEC", "200000") // 200ms -> ping every 100ms
 	t.Setenv("WATCHDOG_PID", strconv.Itoa(os.Getpid()))
 
-	ext := newSDNotify(&Config{EnableWatchdog: true}, zaptest.NewLogger(t))
+	ext := newSDNotify(&Config{}, zaptest.NewLogger(t))
 	if err := ext.Start(context.Background(), nil); err != nil {
 		t.Fatalf("Start: %v", err)
 	}

@@ -34,9 +34,8 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "watchdog and unset_environment don't require healthcheckv2",
+			name: "unset_environment doesn't require healthcheckv2",
 			cfg: Config{
-				EnableWatchdog:   true,
 				UnsetEnvironment: true,
 			},
 			wantErr: false,

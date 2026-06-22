@@ -35,8 +35,8 @@ type Extension interface {
 //
 //   - READY=1     is sent from Ready() once all pipelines are up.
 //   - STOPPING=1  is sent from Shutdown().
-//   - WATCHDOG=1  is pinged from a ticker goroutine when EnableWatchdog is on
-//     and systemd has set WATCHDOG_USEC.
+//   - WATCHDOG=1  is pinged from a ticker goroutine when systemd has set
+//     WATCHDOG_USEC for our PID (auto-detected, no config needed).
 //   - STATUS=...  is sent on every status change observed via the
 //     healthcheckv2 gRPC Watch stream when DeepHealthcheck is on, and
 //     immediately on permanent/fatal ComponentStatusChanged events.
@@ -89,20 +89,19 @@ func (s *sdnotify) Start(_ context.Context, host component.Host) error {
 		return fmt.Errorf("sdnotify: NOTIFY_SOCKET not set; not running under systemd")
 	}
 
-	// Optional watchdog pinger. SdWatchdogEnabled returns 0 when systemd
-	// didn't set WATCHDOG_USEC (or when WATCHDOG_PID points at a different
-	// process) -- both are valid "not enabled" states we treat as no-ops.
-	if s.cfg.EnableWatchdog {
-		d, err := daemon.SdWatchdogEnabled(false)
-		switch {
-		case err != nil:
-			s.logger.Debug("sdnotify: SdWatchdogEnabled returned error; watchdog disabled",
-				zap.Error(err))
-		case d == 0:
-			s.logger.Debug("sdnotify: WATCHDOG_USEC not set; watchdog disabled")
-		default:
-			s.startWatchdog(d)
-		}
+	// Watchdog auto-enables whenever systemd has set WATCHDOG_USEC for our
+	// PID. SdWatchdogEnabled returns 0 when it didn't, or when WATCHDOG_PID
+	// points at a different process -- both are valid "not enabled" states
+	// we treat as a no-op.
+	d, err := daemon.SdWatchdogEnabled(false)
+	switch {
+	case err != nil:
+		s.logger.Debug("sdnotify: SdWatchdogEnabled returned error; watchdog disabled",
+			zap.Error(err))
+	case d == 0:
+		s.logger.Debug("sdnotify: WATCHDOG_USEC not set; watchdog disabled")
+	default:
+		s.startWatchdog(d)
 	}
 
 	return nil
@@ -236,7 +235,8 @@ func (s *sdnotify) startDeepHealthcheck() error {
 	if err != nil {
 		return err
 	}
-	hc, err := dialHealthClient(endpoint, s.cfg.WatchService, s.logger)
+	// service="" -> overall collector health (aggregate of all components).
+	hc, err := dialHealthClient(endpoint, "", s.logger)
 	if err != nil {
 		return err
 	}
@@ -257,8 +257,7 @@ func (s *sdnotify) startDeepHealthcheck() error {
 	}()
 
 	s.logger.Info("sdnotify: deep healthcheck enabled",
-		zap.String("endpoint", endpoint),
-		zap.String("watch_service", s.cfg.WatchService))
+		zap.String("endpoint", endpoint))
 	return nil
 }
 

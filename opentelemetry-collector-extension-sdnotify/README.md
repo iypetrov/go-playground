@@ -29,23 +29,22 @@ Two modes — both configurable, both optional:
   pushed immediately so `systemctl status` reflects degradation within
   milliseconds.
 
-The optional **watchdog** path (`enable_watchdog: true`) pings `WATCHDOG=1`
-every `WATCHDOG_USEC/2` microseconds when systemd sets `WATCHDOG_USEC`;
-no-op otherwise.
+The **watchdog** pinger auto-enables whenever systemd sets `WATCHDOG_USEC`
+(typically via `WatchdogSec=` in the unit file). It sends `WATCHDOG=1` every
+`WATCHDOG_USEC/2` microseconds; no configuration knob needed — if systemd
+doesn't ask for a watchdog, the pinger stays off.
 
 ## Configuration
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
 | `fail_if_not_supervised` | bool | `false` | Fail `Start` when `NOTIFY_SOCKET` is unset. |
-| `enable_watchdog` | bool | `false` | Ping `WATCHDOG=1` at `WATCHDOG_USEC/2` cadence. |
 | `unset_environment` | bool | `false` | Pass `unsetEnv=true` to `daemon.SdNotify` so child processes don't inherit `NOTIFY_SOCKET`. |
-| `deep_healthcheck` | bool | `false` | Subscribe to `healthcheckv2`'s gRPC `Health.Watch` and emit `STATUS=...`. Requires `healthcheckv2` to be set. |
+| `deep_healthcheck` | bool | `false` | Subscribe to `healthcheckv2`'s gRPC `Health.Watch` (overall collector health, i.e. the aggregate of every component) and emit `STATUS=...`. |
 | `healthcheckv2` | component.ID | `healthcheckv2` | ID of the sibling healthcheckv2 extension. Used both for `Dependencies()` and to look up the gRPC endpoint. Override only if your sibling extension uses a non-default instance name. |
 | `healthcheckv2_grpc_endpoint` | string | `""` | Optional explicit override. When empty, the endpoint is read from the sibling extension's config at runtime. |
-| `watch_service` | string | `""` | gRPC health `service` name to watch. `""` = overall collector health; e.g. `"logs"` watches just the logs pipeline. |
 
-Example with both modes wired up:
+Example with deep mode wired up:
 
 ```yaml
 extensions:
@@ -55,9 +54,7 @@ extensions:
       endpoint: localhost:13132
 
   sdnotify:
-    enable_watchdog: true
     deep_healthcheck: true
-    healthcheckv2: healthcheckv2
 
 service:
   extensions: [healthcheckv2, sdnotify]
@@ -131,7 +128,8 @@ Wants=network-online.target
 Type=notify
 NotifyAccess=main
 ExecStart=/usr/local/bin/otelcol-sdnotify --config=/etc/otelcol/config.yaml
-# Optional: enable watchdog supervision. Pair with enable_watchdog: true.
+# Enables systemd's watchdog supervision. sdnotify auto-detects this and
+# starts pinging WATCHDOG=1 at WatchdogSec/2 cadence.
 WatchdogSec=30s
 Restart=on-failure
 RestartSec=5s
