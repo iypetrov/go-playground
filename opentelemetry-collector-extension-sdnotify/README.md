@@ -33,27 +33,6 @@ The optional **watchdog** path (`enable_watchdog: true`) pings `WATCHDOG=1`
 every `WATCHDOG_USEC/2` microseconds when systemd sets `WATCHDOG_USEC`;
 no-op otherwise.
 
-## Layout
-
-```
-.
-├── Makefile
-├── manifest.yml                       # OCB (builder) input
-├── config.yaml                        # sample collector config
-├── internal/tools/go.mod              # pins the ocb tool version
-└── extension/sdnotify/                # the custom extension (its own Go module)
-    ├── go.mod
-    ├── factory.go
-    ├── config.go
-    ├── extension.go
-    ├── healthcheck_client.go          # grpc.health.v1 Watch wrapper
-    ├── config_test.go
-    ├── extension_test.go
-    └── healthcheck_client_test.go
-```
-
-The compiled binary lands at `bin/otelcol-sdnotify` after `make build`.
-
 ## Configuration
 
 | Key | Type | Default | Notes |
@@ -62,7 +41,7 @@ The compiled binary lands at `bin/otelcol-sdnotify` after `make build`.
 | `enable_watchdog` | bool | `false` | Ping `WATCHDOG=1` at `WATCHDOG_USEC/2` cadence. |
 | `unset_environment` | bool | `false` | Pass `unsetEnv=true` to `daemon.SdNotify` so child processes don't inherit `NOTIFY_SOCKET`. |
 | `deep_healthcheck` | bool | `false` | Subscribe to `healthcheckv2`'s gRPC `Health.Watch` and emit `STATUS=...`. Requires `healthcheckv2` to be set. |
-| `healthcheckv2` | component.ID | — | ID of the sibling healthcheckv2 extension. Used both for `Dependencies()` and to look up the gRPC endpoint. Required when `deep_healthcheck` is true. |
+| `healthcheckv2` | component.ID | `healthcheckv2` | ID of the sibling healthcheckv2 extension. Used both for `Dependencies()` and to look up the gRPC endpoint. Override only if your sibling extension uses a non-default instance name. |
 | `healthcheckv2_grpc_endpoint` | string | `""` | Optional explicit override. When empty, the endpoint is read from the sibling extension's config at runtime. |
 | `watch_service` | string | `""` | gRPC health `service` name to watch. `""` = overall collector health; e.g. `"logs"` watches just the logs pipeline. |
 

@@ -23,7 +23,11 @@ func NewFactory() extension.Factory {
 func createDefaultConfig() component.Config {
 	// All advanced features off by default: today's "just send READY=1 and
 	// STOPPING=1 if NOTIFY_SOCKET is set" behaviour is preserved bit-for-bit.
-	return &Config{}
+	// HealthcheckV2 defaults to the conventional sibling ID so that flipping
+	// `deep_healthcheck: true` works without also restating the dependency.
+	return &Config{
+		HealthcheckV2: component.MustNewID("healthcheckv2"),
+	}
 }
 
 func createExtension(_ context.Context, set extension.Settings, cfg component.Config) (extension.Extension, error) {
