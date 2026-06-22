@@ -1,11 +1,34 @@
 # Sample collector config: tail every *.log under ./input/ and print
 # each record to stdout. The sdnotify extension is loaded so the collector
 # notifies systemd when running under it (no-op otherwise).
+#
+# Deep-healthcheck mode is enabled below: sdnotify subscribes to the
+# healthcheckv2 extension over gRPC and reflects every aggregated status
+# change into a STATUS=<text> line that `systemctl status` displays.
 
 extensions:
+  healthcheckv2:
+    use_v2: true
+    grpc:
+      endpoint: localhost:13132
+    http:
+      endpoint: localhost:13133
+
   sdnotify:
     # Set to true to refuse to start when not supervised by systemd.
     fail_if_not_supervised: false
+    # Ping the systemd watchdog every WATCHDOG_USEC/2 microseconds. Only
+    # active when systemd actually sets WATCHDOG_USEC; otherwise a no-op.
+    enable_watchdog: true
+    # Subscribe to healthcheckv2's gRPC Health.Watch stream and reflect
+    # status changes into STATUS= notifications.
+    deep_healthcheck: true
+    healthcheckv2: healthcheckv2
+    # Optional: pin the dial endpoint explicitly if sibling-config lookup
+    # ever proves brittle. Leaving it empty (recommended) lets sdnotify
+    # read the endpoint from the healthcheckv2 extension above.
+    # healthcheckv2_grpc_endpoint: localhost:13132
+    # watch_service: ""   # "" = overall collector health; or e.g. "logs"
 
 receivers:
   file_log:
@@ -19,7 +42,7 @@ exporters:
     verbosity: detailed
 
 service:
-  extensions: [sdnotify]
+  extensions: [healthcheckv2, sdnotify]
   pipelines:
     logs:
       receivers: [file_log]

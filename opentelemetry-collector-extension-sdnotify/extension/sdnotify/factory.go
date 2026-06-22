@@ -21,7 +21,9 @@ func NewFactory() extension.Factory {
 }
 
 func createDefaultConfig() component.Config {
-	return &Config{FailIfNotSupervised: false}
+	// All advanced features off by default: today's "just send READY=1 and
+	// STOPPING=1 if NOTIFY_SOCKET is set" behaviour is preserved bit-for-bit.
+	return &Config{}
 }
 
 func createExtension(_ context.Context, set extension.Settings, cfg component.Config) (extension.Extension, error) {

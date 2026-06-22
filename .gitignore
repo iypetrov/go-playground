@@ -6,3 +6,4 @@
 
 /fluent-bit-output-plugin/plugin.h
 /fluent-bit-output-plugin/plugin.so
+/opentelemetry-collector-extension-sdnotify/_build

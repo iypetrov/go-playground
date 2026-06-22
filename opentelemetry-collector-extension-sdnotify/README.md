@@ -1,27 +1,100 @@
 # opentelemetry-collector-extension-sdnotify
 
-Minimal custom OpenTelemetry Collector distribution that includes a single
-custom extension, **`sdnotify`**, which sends `READY=1` / `STOPPING=1` to
-systemd via `sd_notify(3)` so the collector can be supervised as a
-`Type=notify` service.
+Custom OpenTelemetry Collector distribution that bundles a single custom
+extension, **`sdnotify`**, which talks to systemd via `sd_notify(3)` so the
+collector can be supervised as a `Type=notify` service.
+
+## What it does
+
+The extension implements four collector interfaces to surface readiness and
+component health back to systemd:
+
+| Interface | Purpose |
+|---|---|
+| `extension.Extension` | Lifecycle (`Start`/`Shutdown`). Sends `STOPPING=1` on shutdown; in watchdog mode, runs the keepalive ticker. |
+| `extensioncapabilities.PipelineWatcher` | `Ready()` sends `READY=1` once every receiver/processor/exporter in every pipeline has started. `NotReady()` stops the gRPC watcher before receivers drain. |
+| `extensioncapabilities.Dependent` | When deep-healthcheck mode is on, declares a dependency on the `healthcheckv2` extension so it starts first. |
+| `componentstatus.Watcher` | Receives every component status change; in deep mode, permanent/fatal errors are immediately surfaced as `STATUS=component <id> failed: <err>`. |
+
+Two modes — both configurable, both optional:
+
+- **Shallow (default).** Only `READY=1` (from `Ready()`) and `STOPPING=1`
+  (from `Shutdown`) are sent. Component status changes are logged but not
+  forwarded to systemd.
+- **Deep healthcheck (`deep_healthcheck: true`).** sdnotify subscribes to
+  the `grpc.health.v1.Health/Watch` stream exposed by the
+  [`healthcheckv2`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/healthcheckv2extension)
+  extension and emits a `STATUS=<line>` notification on every aggregated
+  status change. Hard failures observed via `ComponentStatusChanged` are
+  pushed immediately so `systemctl status` reflects degradation within
+  milliseconds.
+
+The optional **watchdog** path (`enable_watchdog: true`) pings `WATCHDOG=1`
+every `WATCHDOG_USEC/2` microseconds when systemd sets `WATCHDOG_USEC`;
+no-op otherwise.
 
 ## Layout
 
 ```
 .
 ├── Makefile
-├── manifest.yml                    # OCB (builder) input
-├── config.yaml                     # sample collector config (filelog -> debug)
-├── internal/tools/go.mod           # pins the ocb tool version
-└── extension/sdnotify/             # the custom extension (its own Go module)
+├── manifest.yml                       # OCB (builder) input
+├── config.yaml                        # sample collector config
+├── internal/tools/go.mod              # pins the ocb tool version
+└── extension/sdnotify/                # the custom extension (its own Go module)
     ├── go.mod
     ├── factory.go
     ├── config.go
-    └── extension.go
+    ├── extension.go
+    ├── healthcheck_client.go          # grpc.health.v1 Watch wrapper
+    ├── config_test.go
+    ├── extension_test.go
+    └── healthcheck_client_test.go
 ```
 
-The compiled binary is generated under `_build/` by `ocb` and built into
-`bin/otelcol-sdnotify`. Both directories are git-ignored.
+The compiled binary lands at `bin/otelcol-sdnotify` after `make build`.
+
+## Configuration
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `fail_if_not_supervised` | bool | `false` | Fail `Start` when `NOTIFY_SOCKET` is unset. |
+| `enable_watchdog` | bool | `false` | Ping `WATCHDOG=1` at `WATCHDOG_USEC/2` cadence. |
+| `unset_environment` | bool | `false` | Pass `unsetEnv=true` to `daemon.SdNotify` so child processes don't inherit `NOTIFY_SOCKET`. |
+| `deep_healthcheck` | bool | `false` | Subscribe to `healthcheckv2`'s gRPC `Health.Watch` and emit `STATUS=...`. Requires `healthcheckv2` to be set. |
+| `healthcheckv2` | component.ID | — | ID of the sibling healthcheckv2 extension. Used both for `Dependencies()` and to look up the gRPC endpoint. Required when `deep_healthcheck` is true. |
+| `healthcheckv2_grpc_endpoint` | string | `""` | Optional explicit override. When empty, the endpoint is read from the sibling extension's config at runtime. |
+| `watch_service` | string | `""` | gRPC health `service` name to watch. `""` = overall collector health; e.g. `"logs"` watches just the logs pipeline. |
+
+Example with both modes wired up:
+
+```yaml
+extensions:
+  healthcheckv2:
+    use_v2: true
+    grpc:
+      endpoint: localhost:13132
+
+  sdnotify:
+    enable_watchdog: true
+    deep_healthcheck: true
+    healthcheckv2: healthcheckv2
+
+service:
+  extensions: [healthcheckv2, sdnotify]
+  pipelines:
+    logs:
+      receivers: [file_log]
+      exporters: [debug]
+```
+
+### A note on endpoint resolution
+
+In deep mode, sdnotify reads the gRPC endpoint off the sibling
+`healthcheckv2` extension via reflection on its config struct. The healthcheckv2
+type layout is not part of its public Go API, so if a future version reshapes
+its config the lookup may fail — in that case, set `healthcheckv2_grpc_endpoint`
+explicitly to bypass it.
 
 ## Build & run
 
@@ -38,37 +111,68 @@ First-time setup also requires populating the tools module:
 cd internal/tools && go mod tidy
 ```
 
-## Verify the dir → stdout pipeline
+## Verify locally (without systemd)
+
+Run the collector under a `socat` listener that pretends to be systemd:
 
 ```sh
-mkdir -p input
-echo "hello sdnotify" > input/test.log
+# Terminal 1: fake systemd notify socket.
+export NOTIFY_SOCKET=/tmp/sdn.sock
+rm -f "$NOTIFY_SOCKET"
+socat UNIX-RECV:$NOTIFY_SOCKET -
+
+# Terminal 2: run the collector with the same NOTIFY_SOCKET.
+export NOTIFY_SOCKET=/tmp/sdn.sock
 make run
 ```
 
-You should see the line printed by the debug exporter, plus an
-`sdnotify: NOTIFY_SOCKET not set; READY=1 was a no-op` log entry (because
-you're running interactively, not under systemd). Add more lines to files
-in `input/` to confirm tailing.
+You should see in terminal 1:
+
+```
+READY=1
+STATUS=SERVING        # one per healthcheckv2 status change (deep mode)
+...
+STOPPING=1
+```
+
+To exercise the deep-healthcheck push path, point a receiver/exporter at an
+unreachable endpoint so it transitions to `StatusPermanentError`; a
+`STATUS=component <id> failed: ...` line will appear before the next
+aggregated update from healthcheckv2.
 
 ## Use under systemd
 
-Drop a unit like:
-
 ```ini
+[Unit]
+Description=OpenTelemetry Collector (sdnotify)
+After=network-online.target
+Wants=network-online.target
+
 [Service]
 Type=notify
+NotifyAccess=main
 ExecStart=/usr/local/bin/otelcol-sdnotify --config=/etc/otelcol/config.yaml
+# Optional: enable watchdog supervision. Pair with enable_watchdog: true.
+WatchdogSec=30s
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
 ```
 
-systemd will set `NOTIFY_SOCKET`, the extension will send `READY=1` once
-all components have started, and `systemctl status` will reflect the
-`active (running)` state only after the collector is actually up.
+`systemctl status otelcol-sdnotify` will then show:
+
+- `Active: active (running)` only after `Ready()` has fired (i.e. all
+  pipelines are up).
+- A live `Status:` line reflecting the current aggregated health (in deep
+  mode), updated as healthcheckv2 reports changes.
 
 ## Versions
 
 - OpenTelemetry Collector: `v0.154.0`
 - Component / extension v1 APIs: `v1.60.0`
+- `healthcheckv2extension`: `v0.154.0` (contrib)
 - ocb (builder): `v0.154.0`
 - Go: `1.24+`
 

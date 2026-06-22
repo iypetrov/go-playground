@@ -8,6 +8,9 @@ extensions:
   # Local custom extension. The v0.0.0 placeholder is paired with the `replaces`
   # block below so OCB resolves it to the in-tree source.
   - gomod: github.com/iypetrov/opentelemetry-collector-extension-sdnotify/extension/sdnotify v0.0.0
+  # Aggregated component health, queried by sdnotify in deep-healthcheck mode
+  # over its grpc.health.v1.Health/Watch stream.
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckv2extension v0.154.0
 
 receivers:
   # Tails files in a directory and emits each line as a log record.
